@@ -5,7 +5,11 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "backend"
-include(":app")
-include(":auth")
-include(":common")
+rootProject.name = "jiaa-backend"
+include(":analysis-service")
+include(":auth-service")
+include(":common-lib")
+include(":discovery-service")
+include(":gateway-service")
+include(":goal-service")
+include(":user-service")
