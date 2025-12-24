@@ -6,4 +6,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "backend"
+include(":app")
 include(":auth")
+include(":common")

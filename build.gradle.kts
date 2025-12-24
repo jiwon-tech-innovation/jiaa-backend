@@ -1,7 +1,7 @@
 plugins {
     java
     id("org.springframework.boot") version "4.0.1" apply false
-    id("io.spring.dependency-management") version "1.1.7" apply false
+    id("io.spring.dependency-management") version "1.1.7"
 }
 
 allprojects {
@@ -16,6 +16,12 @@ subprojects {
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(25)
+        }
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom("org.springframework.modulith:spring-modulith-bom:2.0.1")
         }
     }
 
