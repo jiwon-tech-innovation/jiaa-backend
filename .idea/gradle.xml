@@ -8,6 +8,13 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/analysis-service" />
+            <option value="$PROJECT_DIR$/auth-service" />
+            <option value="$PROJECT_DIR$/common-lib" />
+            <option value="$PROJECT_DIR$/discovery-service" />
+            <option value="$PROJECT_DIR$/gateway-service" />
+            <option value="$PROJECT_DIR$/goal-service" />
+            <option value="$PROJECT_DIR$/user-service" />
           </set>
         </option>
       </GradleProjectSettings>
