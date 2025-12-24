@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Add PR to Project
-        id: add_pr  # ✅ 다음 스텝에서 아이템 ID를 사용하기 위한 필수 설정입니다.
+        id: add_pr  
         uses: actions/add-to-project@v1.0.1
         with:
           # Project URL
