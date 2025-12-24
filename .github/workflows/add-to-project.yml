@@ -15,3 +15,11 @@ jobs:
           project-url: https://github.com/orgs/jiwon-tech-innovation/projects/1
           # 위에서 설정한 Secret 토큰 (들여쓰기를 위 라인과 맞추세요)
           github-token: ${{ secrets.PROJECT_TOKEN }}
+
+      - name: Set Status to In review(PR)
+        run: |
+          gh project item-edit --id ${{ steps.add_pr.outputs.itemId }} \
+          --field "Status" --value "PR" \
+          --project-id 1 --owner "jiwon-tech-innovation"
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
