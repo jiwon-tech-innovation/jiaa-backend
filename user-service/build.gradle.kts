@@ -9,7 +9,7 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
 }
 
 tasks.named<org.gradle.api.tasks.bundling.Jar>("jar") {
-    enabled = false
+    enabled = true
 }
 
 dependencies {

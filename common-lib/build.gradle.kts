@@ -1,14 +1,20 @@
+import org.gradle.jvm.tasks.Jar
+
 plugins {
     id("org.springframework.boot")
     id("io.spring.dependency-management")
     `java-library`
 }
 
+tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+    enabled = false
+}
+
+tasks.getByName<Jar>("jar") {
+    enabled = true
+}
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.boot:spring-boot-starter-mail")
-    api("org.springdoc:springdoc-openapi-starter-common:3.0.0")
-    
-	compileOnly("org.projectlombok:lombok:1.18.42")
-	annotationProcessor("org.projectlombok:lombok:1.18.42")
+    implementation("org.springframework.boot:spring-boot-starter-web")
 }

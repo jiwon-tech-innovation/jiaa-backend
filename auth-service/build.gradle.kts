@@ -5,8 +5,10 @@ plugins {
 
 dependencies {
 	implementation(project(":common-lib"))
+	implementation(project(":user-service"))
 
 	implementation("org.springframework.boot:spring-boot-starter-web")
+	implementation("org.springframework.boot:spring-boot-starter-mail")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 
@@ -23,6 +25,10 @@ dependencies {
 
 	implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
+
+	// implementation("org.springframework.boot:spring-boot-starter-data-redis")
+	// implementation("com.bucket4j:bucket4j-core:8.10.1")
+	// implementation("com.bucket4j:bucket4j-redis:8.10.1")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
