@@ -11,7 +11,7 @@ jobs:
       - name: Add PR to Project
         uses: actions/add-to-project@v1.0.1
         with:
-          # 프로젝트 보드의 URL
-          https://github.com/orgs/jiwon-tech-innovation/projects/1
-          # 위에서 설정한 Secret 토큰
+          # 프로젝트 보드의 URL (반드시 project-url: 키를 앞에 써야 합니다)
+          project-url: https://github.com/orgs/jiwon-tech-innovation/projects/1
+          # 위에서 설정한 Secret 토큰 (들여쓰기를 위 라인과 맞추세요)
           github-token: ${{ secrets.PROJECT_TOKEN }}
