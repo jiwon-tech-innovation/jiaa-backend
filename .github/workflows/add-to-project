@@ -1,0 +1,17 @@
+name: Auto Add PR to Project
+
+on:
+  pull_request:
+    types: [opened] # PR이 처음 생성될 때만 실행
+
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add PR to Project
+        uses: actions/add-to-project@v1.0.1
+        with:
+          # 프로젝트 보드의 URL
+          https://github.com/orgs/jiwon-tech-innovation/projects/1
+          # 위에서 설정한 Secret 토큰
+          github-token: ${{ secrets.PROJECT_TOKEN }}
