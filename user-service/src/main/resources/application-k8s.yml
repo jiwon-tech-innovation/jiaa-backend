@@ -1,0 +1,18 @@
+# ========================================
+# K8s (EKS) 환경용 User Service 설정
+# ========================================
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    show-sql: false
+
+# Eureka 비활성화 (K8s Service Discovery 사용)
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
