@@ -62,6 +62,12 @@ pipeline {
         }
 
         stage('ECR Push') {
+            agent {
+                docker { 
+                    image 'amazon/aws-cli' // AWS CLI가 들어있는 이미지를 소환합니다!
+                    args '-v /var/run/docker.sock:/var/run/docker.sock' // 여기서도 소켓 공유는 필수!
+                }
+            }
             steps {
                 echo "${params.SERVICE_NAME} 이미지를 AWS ECR로 쏘아 올립니다! 🚀"
                 
