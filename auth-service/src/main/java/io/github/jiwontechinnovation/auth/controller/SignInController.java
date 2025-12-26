@@ -33,7 +33,7 @@ public class SignInController {
     public ApiResponse<AuthResponse> signIn(@Valid @RequestBody SignInRequest request, HttpServletResponse response) {
         SignInService.TokenPair tokenPair = signInService.signIn(request);
         setRefreshTokenCookie(response, tokenPair.refreshToken());
-        return ApiResponse.success("로그인 성공", new AuthResponse(tokenPair.accessToken()));
+        return ApiResponse.success("로그인 성공", new AuthResponse(tokenPair.accessToken(), tokenPair.refreshToken()));
     }
 
     @PostMapping("/refresh")
@@ -49,7 +49,7 @@ public class SignInController {
 
         SignInService.TokenPair tokenPair = signInService.refreshToken(new RefreshTokenRequest(refreshToken));
         setRefreshTokenCookie(response, tokenPair.refreshToken());
-        return ApiResponse.success("토큰 갱신 성공", new AuthResponse(tokenPair.accessToken()));
+        return ApiResponse.success("토큰 갱신 성공", new AuthResponse(tokenPair.accessToken(), tokenPair.refreshToken()));
     }
 
     @PostMapping("/signout")
@@ -57,6 +57,16 @@ public class SignInController {
     public ApiResponse<Void> signOut(HttpServletResponse response) {
         clearRefreshTokenCookie(response);
         return ApiResponse.success("로그아웃되었습니다", null);
+    }
+
+    @PostMapping("/auto-signin")
+    @Operation(summary = "자동 로그인 (리프레시 토큰으로 로그인)", description = "데스크톱 앱 재시작 시 저장된 리프레시 토큰으로 자동 로그인")
+    public ApiResponse<AuthResponse> autoLogin(
+            @Valid @RequestBody RefreshTokenRequest request,
+            HttpServletResponse response) {
+        SignInService.TokenPair tokenPair = signInService.refreshToken(request);
+        setRefreshTokenCookie(response, tokenPair.refreshToken());
+        return ApiResponse.success("자동 로그인 성공", new AuthResponse(tokenPair.accessToken(), tokenPair.refreshToken()));
     }
 
     private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {

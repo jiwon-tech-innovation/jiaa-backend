@@ -1,5 +1,5 @@
 # 멀티스테이지 빌드 - 빌드 단계
-FROM eclipse-temurin:25-jdk-alpine AS builder
+FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /app
 
@@ -32,7 +32,7 @@ ARG MODULE
 RUN ./gradlew :${MODULE}:bootJar --no-daemon -x test
 
 # 실행 단계
-FROM eclipse-temurin:25-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
