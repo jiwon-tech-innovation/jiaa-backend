@@ -10,16 +10,13 @@ pipeline {
     stages {
         stage('Unit Test') {
             steps {
-                echo "${params.SERVICE_NAME} 유닛 테스트를 시작합니다... "
+                echo "${params.SERVICE_NAME} 유닛 테스트를 시작합니다... 🧪"
                 dir("${params.SERVICE_NAME}") {
-                    // 1. 루트의 gradlew를 사용해 '선택한 모듈'의 테스트만 돌림
-                    sh '../gradlew :${params.SERVICE_NAME}:test --no-daemon'
+                    sh "../gradlew :${params.SERVICE_NAME}:test --no-daemon"
                 }
             }
             post {
                 always {
-                    // 2. 테스트가 성공하든 실패하든 리포트 남기기
-                    // 해당 서비스 폴더 내부의 결과만 수집
                     junit "${params.SERVICE_NAME}/build/test-results/test/*.xml"
                 }
             }
