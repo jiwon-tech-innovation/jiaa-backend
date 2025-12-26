@@ -65,17 +65,17 @@ pipeline {
             steps {
                 echo "${params.SERVICE_NAME} 이미지를 AWS ECR로 쏘아 올립니다! 🚀"
                 
-                // 1. AWS ECR 로그인 (비밀번호를 가져와서 도커 로그인에 전달)
-                // 주인님의 계정 ID: 541673202749, 리전: ap-northeast-2 활용 
+                // 1. ECR 로그인
                 sh "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 541673202749.dkr.ecr.ap-northeast-2.amazonaws.com"
                 
-                // 2. ECR용 태그 생성 (로컬 이미지를 ECR 창고 주소로 이름표를 바꿔줌)
-                sh "docker tag jiaa-${params.SERVICE_NAME}:${env.BUILD_NUMBER} 541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa-${params.SERVICE_NAME}:${env.BUILD_NUMBER}"
-                sh "docker tag jiaa-${params.SERVICE_NAME}:${env.BUILD_NUMBER} 541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa-${params.SERVICE_NAME}:latest"
+                // 2. ECR용 태그 생성 (하이픈 대신 슬래시 적용!) 🎯
+                // jiaa/user-service 형태로 태깅됩니다.
+                sh "docker tag jiaa-${params.SERVICE_NAME}:${env.BUILD_NUMBER} 541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:${env.BUILD_NUMBER}"
+                sh "docker tag jiaa-${params.SERVICE_NAME}:${env.BUILD_NUMBER} 541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:latest"
                 
-                // 3. 실제 이미지 푸시! (진짜로 클라우드 창고에 집어넣는 순간)
-                sh "docker push 541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa-${params.SERVICE_NAME}:${env.BUILD_NUMBER}"
-                sh "docker push 541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa-${params.SERVICE_NAME}:latest"
+                // 3. 실제 이미지 푸시
+                sh "docker push 541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:${env.BUILD_NUMBER}"
+                sh "docker push 541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:latest"
             }
         }
     }
