@@ -263,3 +263,4 @@ kubectl get events -n jiwon-tech --sort-by='.lastTimestamp'
 - K8s 환경에서는 `host.docker.internal`을 사용하여 호스트 DB에 접근
 - 로컬 실행 시에는 `localhost` 사용
 
+
