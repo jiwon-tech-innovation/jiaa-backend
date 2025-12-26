@@ -1,14 +1,123 @@
 package io.github.jiwontechinnovation.analysis.controller;
 
+import io.github.jiwontechinnovation.analysis.client.UserServiceClient;
+import io.github.jiwontechinnovation.analysis.dto.DashboardStatsResponse;
+import io.github.jiwontechinnovation.analysis.service.AnalysisService;
+import io.github.jiwontechinnovation.common.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController
-public class AnalysisController {
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
-    @GetMapping("/test")
-    public String test() {
-        return "Analysis Service is working!";
+@RestController
+@Tag(name = "Analysis", description = "분석 통계 API")
+@SecurityRequirement(name = "bearerAuth")
+public class AnalysisController {
+    private final AnalysisService analysisService;
+    private final UserServiceClient userServiceClient;
+
+    public AnalysisController(AnalysisService analysisService, UserServiceClient userServiceClient) {
+        this.analysisService = analysisService;
+        this.userServiceClient = userServiceClient;
+    }
+
+    @GetMapping("/stats/debug")
+    @Operation(summary = "디버그: 통계 데이터 상세 조회", description = "데이터베이스에서 조회한 원본 데이터를 상세히 확인합니다.")
+    public ApiResponse<Object> getDashboardStatsDebug(HttpServletRequest request) {
+        UUID userId = null;
+        
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null 
+                    && authentication.isAuthenticated() 
+                    && !"anonymousUser".equals(authentication.getPrincipal())
+                    && authentication.getPrincipal() instanceof String) {
+                String username = (String) authentication.getPrincipal();
+                String authToken = extractToken(request);
+                if (authToken != null && !authToken.isEmpty()) {
+                    userId = userServiceClient.getUserIdByUsername(username, authToken);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to get authentication: " + e.getMessage());
+        }
+        
+        List<io.github.jiwontechinnovation.analysis.entity.DashboardStat> stats;
+        if (userId != null) {
+            stats = analysisService.getAllStatsForUser(userId);
+        } else {
+            stats = analysisService.getAllStatsForUser(null);
+        }
+        
+        List<Object> debugData = stats.stream()
+                .map(stat -> Map.of(
+                    "id", stat.getId().toString(),
+                    "userId", stat.getUserId() != null ? stat.getUserId().toString() : "null",
+                    "category", stat.getCategory(),
+                    "value", stat.getValue(),
+                    "createdAt", stat.getCreatedAt() != null ? stat.getCreatedAt().toString() : "null",
+                    "updatedAt", stat.getUpdatedAt() != null ? stat.getUpdatedAt().toString() : "null"
+                ))
+                .collect(Collectors.toList());
+        
+        return ApiResponse.success("디버그 데이터", Map.of("userId", userId != null ? userId.toString() : "null", "stats", debugData));
+    }
+
+    @GetMapping("/stats")
+    @Operation(summary = "대시보드 통계 조회", description = "레이더 차트에 표시할 통계 데이터를 조회합니다. 현재 로그인한 사용자의 통계를 조회합니다.")
+    public ApiResponse<DashboardStatsResponse> getDashboardStats(HttpServletRequest request) {
+        UUID userId = null;
+        
+        try {
+            // SecurityContext에서 인증 정보 가져오기
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            System.out.println("=== Authentication Debug ===");
+            System.out.println("Authentication: " + authentication);
+            if (authentication != null) {
+                System.out.println("Principal: " + authentication.getPrincipal());
+                System.out.println("Is Authenticated: " + authentication.isAuthenticated());
+            }
+            
+            if (authentication != null 
+                    && authentication.isAuthenticated() 
+                    && !"anonymousUser".equals(authentication.getPrincipal())
+                    && authentication.getPrincipal() instanceof String) {
+                String username = (String) authentication.getPrincipal();
+                System.out.println("Username: " + username);
+                String authToken = extractToken(request);
+                System.out.println("AuthToken exists: " + (authToken != null && !authToken.isEmpty()));
+                if (authToken != null && !authToken.isEmpty()) {
+                    userId = userServiceClient.getUserIdByUsername(username, authToken);
+                    System.out.println("UserId from UserService: " + userId);
+                }
+            }
+        } catch (Exception e) {
+            // 인증 정보 가져오기 실패 시 전체 통계 반환
+            System.err.println("Failed to get authentication: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        System.out.println("Final userId: " + userId);
+        
+        DashboardStatsResponse response = analysisService.getDashboardStats(userId);
+        
+        return ApiResponse.success("통계 데이터 조회 성공", response);
+    }
+    
+    private String extractToken(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
     }
 }
