@@ -1,12 +1,10 @@
-# Amazon Linux 2023 기반의 Corretto 21 JRE 버전
-FROM public.ecr.aws/amazoncorretto/amazoncorretto:21-al2023-jre
+FROM amazoncorretto:21-al2023-headless
 
 WORKDIR /app
 
-# 보안 업데이트
+# 2. 패키지 업데이트 (Amazon Linux 2023용)
 RUN dnf update -y && dnf clean all
 
-# 빌드된 JAR 복사 (기존과 동일)
+# 3. JAR 복사 및 실행 (기존과 동일)
 COPY build/libs/*.jar app.jar
-
 ENTRYPOINT ["java", "-jar", "app.jar"]
