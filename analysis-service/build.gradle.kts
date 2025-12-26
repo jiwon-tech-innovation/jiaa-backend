@@ -15,12 +15,7 @@ dependencies {
 
     runtimeOnly("org.postgresql:postgresql")
 
-<<<<<<< HEAD
-    // Eureka 제거 - K8s Service Discovery 사용
-    // implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
-=======
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
->>>>>>> 14f19b069fe1f892bbbd7d93fcb4ffa910548193
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
     implementation("org.apache.commons:commons-lang3")
 
