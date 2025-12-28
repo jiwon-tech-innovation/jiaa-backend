@@ -34,11 +34,11 @@ public class AnalysisController {
     @Operation(summary = "디버그: 통계 데이터 상세 조회", description = "데이터베이스에서 조회한 원본 데이터를 상세히 확인합니다.")
     public ApiResponse<Object> getDashboardStatsDebug(HttpServletRequest request) {
         UUID userId = null;
-        
+
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication != null 
-                    && authentication.isAuthenticated() 
+            if (authentication != null
+                    && authentication.isAuthenticated()
                     && !"anonymousUser".equals(authentication.getPrincipal())
                     && authentication.getPrincipal() instanceof String) {
                 String username = (String) authentication.getPrincipal();
@@ -50,69 +50,58 @@ public class AnalysisController {
         } catch (Exception e) {
             System.err.println("Failed to get authentication: " + e.getMessage());
         }
-        
+
         List<io.github.jiwontechinnovation.analysis.entity.DashboardStat> stats;
         if (userId != null) {
             stats = analysisService.getAllStatsForUser(userId);
         } else {
             stats = analysisService.getAllStatsForUser(null);
         }
-        
+
         List<Object> debugData = stats.stream()
                 .map(stat -> Map.of(
-                    "id", stat.getId().toString(),
-                    "userId", stat.getUserId() != null ? stat.getUserId().toString() : "null",
-                    "category", stat.getCategory(),
-                    "value", stat.getValue(),
-                    "createdAt", stat.getCreatedAt() != null ? stat.getCreatedAt().toString() : "null",
-                    "updatedAt", stat.getUpdatedAt() != null ? stat.getUpdatedAt().toString() : "null"
-                ))
+                        "id", stat.getId().toString(),
+                        "userId", stat.getUserId() != null ? stat.getUserId().toString() : "null",
+                        "category", stat.getCategory(),
+                        "value", stat.getValue(),
+                        "createdAt", stat.getCreatedAt() != null ? stat.getCreatedAt().toString() : "null",
+                        "updatedAt", stat.getUpdatedAt() != null ? stat.getUpdatedAt().toString() : "null"))
                 .collect(Collectors.toList());
-        
-        return ApiResponse.success("디버그 데이터", Map.of("userId", userId != null ? userId.toString() : "null", "stats", debugData));
+
+        return ApiResponse.success("디버그 데이터",
+                Map.of("userId", userId != null ? userId.toString() : "null", "stats", debugData));
     }
 
     @GetMapping("/stats")
-    @Operation(summary = "대시보드 통계 조회", description = "레이더 차트에 표시할 통계 데이터를 조회합니다. 현재 로그인한 사용자의 통계를 조회합니다.")
-    public ApiResponse<DashboardStatsResponse> getDashboardStats(HttpServletRequest request) {
+    @Operation(summary = "대시보드 통계 조회", description = "레이더 차트에 표시할 통계 데이터와 스트릭 정보를 조회합니다.")
+    public ApiResponse<DashboardStatsResponse> getDashboardStats(
+            HttpServletRequest request,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Integer year) {
         UUID userId = null;
-        
+
         try {
             // SecurityContext에서 인증 정보 가져오기
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            System.out.println("=== Authentication Debug ===");
-            System.out.println("Authentication: " + authentication);
-            if (authentication != null) {
-                System.out.println("Principal: " + authentication.getPrincipal());
-                System.out.println("Is Authenticated: " + authentication.isAuthenticated());
-            }
-            
-            if (authentication != null 
-                    && authentication.isAuthenticated() 
+
+            if (authentication != null
+                    && authentication.isAuthenticated()
                     && !"anonymousUser".equals(authentication.getPrincipal())
                     && authentication.getPrincipal() instanceof String) {
                 String username = (String) authentication.getPrincipal();
-                System.out.println("Username: " + username);
                 String authToken = extractToken(request);
-                System.out.println("AuthToken exists: " + (authToken != null && !authToken.isEmpty()));
                 if (authToken != null && !authToken.isEmpty()) {
                     userId = userServiceClient.getUserIdByUsername(username, authToken);
-                    System.out.println("UserId from UserService: " + userId);
                 }
             }
         } catch (Exception e) {
-            // 인증 정보 가져오기 실패 시 전체 통계 반환
             System.err.println("Failed to get authentication: " + e.getMessage());
-            e.printStackTrace();
         }
-        
-        System.out.println("Final userId: " + userId);
-        
-        DashboardStatsResponse response = analysisService.getDashboardStats(userId);
-        
+
+        DashboardStatsResponse response = analysisService.getDashboardStats(userId, year);
+
         return ApiResponse.success("통계 데이터 조회 성공", response);
     }
-    
+
     private String extractToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {

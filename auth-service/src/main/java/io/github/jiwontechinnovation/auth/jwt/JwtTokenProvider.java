@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtTokenProvider {
@@ -28,21 +29,22 @@ public class JwtTokenProvider {
         this.refreshTokenValidityInMs = refreshTokenValidityInMs;
     }
 
-    public String createAccessToken(String identifier) {
-        return createToken(identifier, "access", accessTokenValidityInMs);
+    public String createAccessToken(String identifier, UUID userId) {
+        return createToken(identifier, userId, "access", accessTokenValidityInMs);
     }
 
-    public String createRefreshToken(String identifier) {
-        return createToken(identifier, "refresh", refreshTokenValidityInMs);
+    public String createRefreshToken(String identifier, UUID userId) {
+        return createToken(identifier, userId, "refresh", refreshTokenValidityInMs);
     }
 
-    private String createToken(String identifier, String type, long validityInMs) {
+    private String createToken(String identifier, UUID userId, String type, long validityInMs) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + validityInMs);
 
         return Jwts.builder()
                 .subject(identifier)
                 .claim("type", type)
+                .claim("user_id", userId != null ? userId.toString() : null)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(key)

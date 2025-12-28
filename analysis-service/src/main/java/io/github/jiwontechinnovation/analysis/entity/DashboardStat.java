@@ -1,29 +1,27 @@
 package io.github.jiwontechinnovation.analysis.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.index.Indexed;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Entity
-@Table(name = "dashboard_stats")
+@Document(collection = "dashboard_stats")
 public class DashboardStat {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private String id;
 
-    @Column(name = "user_id")
+    @Indexed
     private UUID userId;
 
-    @Column(nullable = false, length = 50)
+    @Indexed
     private String category;
 
-    @Column(nullable = false)
     private Integer value;
 
-    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     protected DashboardStat() {
@@ -33,21 +31,16 @@ public class DashboardStat {
         this.userId = userId;
         this.category = category;
         this.value = value;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-
-    public UUID getId() {
+    public String getId() {
         return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public UUID getUserId() {
@@ -80,6 +73,14 @@ public class DashboardStat {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }
 

@@ -29,21 +29,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
         String token = extractToken(request);
         String path = request.getRequestURI();
 
         if (StringUtils.hasText(token)) {
             boolean isValid = jwtTokenProvider.validateToken(token);
             logger.info("JWT Token validation result: {} for path: {}", isValid, path);
-            
+
             if (isValid) {
                 String username = jwtTokenProvider.getUsernameFromToken(token);
                 logger.info("Setting authentication for user: {} on path: {}", username, path);
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username,
+                        null, Collections.emptyList());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -51,7 +51,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 logger.warn("JWT Token validation failed for path: {}", path);
             }
         } else {
-            logger.info("No JWT token found in request to: {}", path);
+            if (!path.startsWith("/actuator")) {
+                logger.info("No JWT token found in request to: {}", path);
+            }
         }
 
         filterChain.doFilter(request, response);
@@ -65,4 +67,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 }
-

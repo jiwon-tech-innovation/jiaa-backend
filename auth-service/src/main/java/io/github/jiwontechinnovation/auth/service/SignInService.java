@@ -41,8 +41,8 @@ public class SignInService {
             throw new BadCredentialsException(ERROR_INVALID_CREDENTIALS);
         }
 
-        logger.info("로그인 성공 - username: {}", user.getUsername());
-        return createTokenPair(user.getUsername());
+        logger.info("로그인 성공 - username: {}, userId: {}", user.getUsername(), user.getId());
+        return createTokenPair(user);
     }
 
     @Transactional(readOnly = true)
@@ -55,12 +55,12 @@ public class SignInService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BadCredentialsException(ERROR_INVALID_REFRESH_TOKEN));
 
-        logger.info("토큰 갱신 성공 - username: {}", username);
-        return createTokenPair(user.getUsername());
+        logger.info("토큰 갱신 성공 - username: {}, userId: {}", username, user.getId());
+        return createTokenPair(user);
     }
 
-    private TokenPair createTokenPair(String username) {
-        return new TokenPair(jwtTokenProvider.createAccessToken(username),
-                jwtTokenProvider.createRefreshToken(username));
+    private TokenPair createTokenPair(User user) {
+        return new TokenPair(jwtTokenProvider.createAccessToken(user.getUsername(), user.getId()),
+                jwtTokenProvider.createRefreshToken(user.getUsername(), user.getId()));
     }
 }
