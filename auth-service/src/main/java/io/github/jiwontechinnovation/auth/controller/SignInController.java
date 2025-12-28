@@ -31,6 +31,7 @@ public class SignInController {
     @PostMapping("/signin")
     @Operation(summary = "로그인")
     public ApiResponse<AuthResponse> signIn(@Valid @RequestBody SignInRequest request, HttpServletResponse response) {
+        System.out.println("Processing signin request for: " + request.usernameOrEmail());
         SignInService.TokenPair tokenPair = signInService.signIn(request);
         setRefreshTokenCookie(response, tokenPair.refreshToken());
         return ApiResponse.success("로그인 성공", new AuthResponse(tokenPair.accessToken(), tokenPair.refreshToken()));
