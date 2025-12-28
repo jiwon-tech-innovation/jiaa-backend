@@ -21,6 +21,8 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     packages-to-scan: io.github.jiwontechinnovation.analysis.entity
 
+<<<<<<< HEAD
+=======
 eureka:
   client:
     service-url:
@@ -29,6 +31,7 @@ eureka:
     fetch-registry: true
   instance:
     prefer-ip-address: true
+>>>>>>> 14f19b069fe1f892bbbd7d93fcb4ffa910548193
 
 springdoc:
   api-docs:
