@@ -90,8 +90,15 @@ spec:
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:debug
-    command: ["/busybox/sh", "-c", "cat"]
+    command: ["/busybox/sh", "-c", "mkdir -p /bin && ln -sf /busybox/sh /bin/sh && cat"]
     tty: true
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "1"
     volumeMounts:
     - name: kaniko-secret
       mountPath: /kaniko/.docker
