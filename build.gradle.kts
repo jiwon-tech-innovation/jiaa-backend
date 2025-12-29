@@ -1,3 +1,5 @@
+import org.gradle.jvm.toolchain.JvmVendorSpec
+
 plugins {
     java
     id("org.springframework.boot") version "4.0.1" apply false
