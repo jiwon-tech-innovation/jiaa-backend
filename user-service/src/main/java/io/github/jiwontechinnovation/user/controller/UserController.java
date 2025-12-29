@@ -1,13 +1,14 @@
 package io.github.jiwontechinnovation.user.controller;
 
+import io.github.jiwontechinnovation.common.response.ApiResponse;
 import io.github.jiwontechinnovation.user.dto.UpdateAvatarRequest;
+import io.github.jiwontechinnovation.user.dto.UpdateProfileRequest;
 import io.github.jiwontechinnovation.user.dto.UserResponse;
 import io.github.jiwontechinnovation.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,16 +26,24 @@ public class UserController {
 
     @GetMapping("/me")
     @Operation(summary = "현재 사용자 정보 조회", description = "JWT 토큰으로 인증된 현재 사용자의 정보를 조회합니다")
-    public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal String identifier) {
-        return ResponseEntity.ok(userService.getCurrentUser(identifier));
+    public ApiResponse<UserResponse> getCurrentUser(@AuthenticationPrincipal String identifier) {
+        return ApiResponse.success("사용자 정보 조회 성공", userService.getCurrentUser(identifier));
     }
 
     @PatchMapping("/me/avatar")
     @Operation(summary = "아바타 변경", description = "현재 사용자의 아바타를 변경합니다")
-    public ResponseEntity<UserResponse> updateAvatar(
+    public ApiResponse<UserResponse> updateAvatar(
             @AuthenticationPrincipal String identifier,
             @Valid @RequestBody UpdateAvatarRequest request) {
-        return ResponseEntity.ok(userService.updateAvatar(identifier, request));
+        return ApiResponse.success("아바타 변경 성공", userService.updateAvatar(identifier, request));
+    }
+
+    @PatchMapping("/me/profile")
+    @Operation(summary = "프로필 수정", description = "현재 사용자의 프로필 정보를 수정합니다")
+    public ApiResponse<UserResponse> updateProfile(
+            @AuthenticationPrincipal String identifier,
+            @Valid @RequestBody UpdateProfileRequest request) {
+        return ApiResponse.success("프로필 수정 성공", userService.updateProfile(identifier, request));
     }
 }
 
