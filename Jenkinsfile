@@ -1,6 +1,7 @@
 pipeline {
     agent any
     
+    // ⚠️ Jenkins 관리 -> Global Tool Configuration에 'JDK21_corretto'가 설정되어 있어야 합니다!
     tools {
         jdk 'JDK21_corretto'
     }
@@ -105,7 +106,7 @@ spec:
                 container('kaniko') {
                     echo "=== [Step 4] Kaniko 이미지 빌드 및 배포 ==="
                     
-                    // JAR 파일을 여기서 찾음(unstash)!
+                    // 아까 맡겨둔 JAR 파일을 여기서 찾음(unstash)!
                     unstash 'build-artifacts'
                     
                     // 파일 잘 왔는지 확인 사살 (디버깅용)
