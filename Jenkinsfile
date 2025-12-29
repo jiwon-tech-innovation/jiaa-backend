@@ -1,6 +1,10 @@
 pipeline {
     agent any
     
+    tools {
+        jdk 'JDK21_corretto'
+    }
+    
     parameters {
         choice(name: 'SERVICE_NAME', 
                choices: ['user-service', 'auth-service', 'analysis-service', 'goal-service', 'gateway-service'], 
@@ -15,7 +19,7 @@ pipeline {
                     sh "chmod +x ../gradlew"
                     sh 'java -version'  
                     sh '../gradlew -v'  
-                    sh '../gradlew :user-service:test --no-daemon --stacktrace' 
+                    sh "../gradlew :${params.SERVICE_NAME}:test --no-daemon --stacktrace"
                 }
             }
             post {
