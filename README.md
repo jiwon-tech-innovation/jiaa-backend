@@ -118,8 +118,6 @@ backend/
 ├── build.gradle.kts           # 루트 빌드 설정
 ├── settings.gradle.kts        # 멀티 모듈 설정
 ├── gradle.properties          # Gradle 속성
-├── Dockerfile                 # 프로덕션용 Dockerfile
-├── Dockerfile.local           # 로컬 개발용 경량 Dockerfile
 ├── scripts/                   # 배포 스크립트
 │   ├── build-local.sh         # 로컬 Docker 이미지 빌드
 │   ├── deploy-local.sh        # K8s 배포
@@ -133,6 +131,7 @@ backend/
 │   │   └── *.yaml
 │   └── *.yaml                 # 프로덕션용
 └── [service-name]/            # 각 마이크로서비스
+    ├── Dockerfile             # 서비스별 Dockerfile
     ├── build.gradle.kts
     └── src/main/
         ├── java/io/github/jiwontechinnovation/[service]/
@@ -207,16 +206,16 @@ backend/
 
 ```bash
 # 네임스페이스 Pod 상태 확인
-kubectl get pods -n jiwon-tech
+kubectl get pods -n jiaa-backend
 
 # 서비스 상태 확인
-kubectl get svc -n jiwon-tech
+kubectl get svc -n jiaa-backend
 
 # Pod 로그 확인
-kubectl logs -f <pod-name> -n jiwon-tech
+kubectl logs -f <pod-name> -n jiaa-backend
 
 # Pod 재시작
-kubectl rollout restart deployment/<service-name> -n jiwon-tech
+kubectl rollout restart deployment/<service-name> -n jiaa-backend
 ```
 
 ## 📝 API 문서
@@ -252,10 +251,10 @@ JWT 기반 인증을 사용합니다.
 
 ```bash
 # Pod 상태 확인
-kubectl describe pod <pod-name> -n jiwon-tech
+kubectl describe pod <pod-name> -n jiaa-backend
 
 # 이벤트 확인
-kubectl get events -n jiwon-tech --sort-by='.lastTimestamp'
+kubectl get events -n jiaa-backend --sort-by='.lastTimestamp'
 ```
 
 ### 데이터베이스 연결 오류

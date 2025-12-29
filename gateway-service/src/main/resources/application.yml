@@ -38,6 +38,44 @@ spring:
             - Path=/analysis-service/**
           filters:
             - StripPrefix=1
+        
+        # AI Chat Service (FastAPI) - WebSocket (우선순위 높음, 더 구체적인 경로 먼저)
+        # 로컬 환경에서는 직접 서비스 URI 사용 (LoadBalancer는 WebSocket 업그레이드에 문제가 있을 수 있음)
+        # 프로덕션에서는 lb://ai-chat-service 사용 가능
+        - id: ai-chat-service-websocket
+          uri: http://jiaa-ai-chat-service-svc:8080
+          predicates:
+            - Path=/api/v1/chat/ws
+          # WebSocket 업그레이드는 Gateway가 자동으로 처리
+        
+        # AI Chat Service (FastAPI) - HTTP 요청 (WebSocket 제외)
+        - id: ai-chat-service
+          uri: lb://ai-chat-service
+          predicates:
+            - Path=/api/v1/chat/**,/api/v1/roadmaps/**,/api/v1/personalities/**,/api/v1/sessions/**,/api/v1/debug/**
+          # WebSocket 경로 제외를 위해 필터 추가는 불필요 (라우팅 순서로 해결)
+        
+        # AI Chat Service OpenAPI (for Swagger) - Eureka Load Balancer
+        - id: ai-chat-service-openapi
+          uri: lb://ai-chat-service
+          predicates:
+            - Path=/ai-chat-service/openapi.json
+          filters:
+            - RewritePath=/ai-chat-service/openapi.json,/openapi.json
+        
+        # AI Judge Service (FastAPI) - Eureka Load Balancer
+        - id: ai-judge-service
+          uri: lb://ai-judge-service
+          predicates:
+            - Path=/api/v1/judge/**
+        
+        # AI Judge Service OpenAPI (for Swagger) - Eureka Load Balancer
+        - id: ai-judge-service-openapi
+          uri: lb://ai-judge-service
+          predicates:
+            - Path=/ai-judge-service/openapi.json
+          filters:
+            - RewritePath=/ai-judge-service/openapi.json,/openapi.json
       discovery:
         locator:
           enabled: true
@@ -74,6 +112,10 @@ springdoc:
         url: /goal-service/v3/api-docs
       - name: analysis-service
         url: /analysis-service/v3/api-docs
+      - name: ai-chat-service
+        url: /ai-chat-service/openapi.json
+      - name: ai-judge-service
+        url: /ai-judge-service/openapi.json
     # Swagger UI에서 사용할 서버 URL (localhost로 고정)
     config-url: /v3/api-docs/swagger-config
     url: /v3/api-docs
