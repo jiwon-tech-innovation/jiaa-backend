@@ -51,6 +51,10 @@ pipeline {
 apiVersion: v1
 kind: Pod
 spec:
+  tolerations:
+  - key: "jiaa.io/system-node"
+    operator: "Exists"
+    effect: "NoSchedule"
   containers:
   - name: trivy
     image: aquasec/trivy:latest
@@ -79,6 +83,10 @@ spec:
 apiVersion: v1
 kind: Pod
 spec:
+  tolerations:
+  - key: "jiaa.io/system-node"
+    operator: "Exists"
+    effect: "NoSchedule"
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:debug
