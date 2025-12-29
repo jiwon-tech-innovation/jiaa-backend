@@ -17,6 +17,7 @@ pipeline {
                 echo "${params.SERVICE_NAME} 유닛 테스트를 시작합니다..."
                 dir("${params.SERVICE_NAME}") {
                     sh "chmod +x ../gradlew"
+                    sh 'echo "=== JDK Directory Structure ===" && ls -la /var/jenkins_home/tools/hudson.model.JDK/JDK21_corretto/'
                     sh 'java -version'  
                     sh '../gradlew -v'  
                     sh "../gradlew :${params.SERVICE_NAME}:test --no-daemon --stacktrace"
