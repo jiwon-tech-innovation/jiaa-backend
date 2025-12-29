@@ -12,12 +12,12 @@ import java.util.UUID;
 public interface DashboardStatRepository extends MongoRepository<DashboardStat, String> {
     List<DashboardStat> findByUserId(UUID userId);
     
-    Optional<DashboardStat> findByUserIdAndCategory(UUID userId, String category);
-    
     // 전체 통계 조회 (userId가 null인 경우)
     List<DashboardStat> findByUserIdIsNull();
     
-    // userId가 null이고 category로 조회
-    Optional<DashboardStat> findByUserIdIsNullAndCategory(String category);
+    // userId로 단일 문서 조회 (배열 구조에서는 userId당 하나의 문서)
+    Optional<DashboardStat> findFirstByUserId(UUID userId);
+    
+    Optional<DashboardStat> findFirstByUserIdIsNull();
 }
 

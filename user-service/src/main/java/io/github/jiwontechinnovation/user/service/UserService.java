@@ -1,6 +1,7 @@
 package io.github.jiwontechinnovation.user.service;
 
 import io.github.jiwontechinnovation.user.dto.UpdateAvatarRequest;
+import io.github.jiwontechinnovation.user.dto.UpdateProfileRequest;
 import io.github.jiwontechinnovation.user.dto.UserResponse;
 import io.github.jiwontechinnovation.user.entity.User;
 import io.github.jiwontechinnovation.user.repository.UserRepository;
@@ -29,6 +30,17 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + identifier));
         
         user.setAvatarId(request.avatarId());
+        User savedUser = userRepository.save(user);
+        
+        return UserResponse.from(savedUser);
+    }
+
+    @Transactional
+    public UserResponse updateProfile(String identifier, UpdateProfileRequest request) {
+        User user = userRepository.findByUsernameOrEmail(identifier)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + identifier));
+        
+        user.setName(request.name());
         User savedUser = userRepository.save(user);
         
         return UserResponse.from(savedUser);

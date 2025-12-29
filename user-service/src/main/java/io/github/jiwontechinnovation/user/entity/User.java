@@ -100,4 +100,8 @@ public class User {
     public void setAvatarId(String avatarId) {
         this.avatarId = avatarId;
     }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 }
