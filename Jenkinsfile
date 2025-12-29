@@ -14,17 +14,17 @@ pipeline {
     stages {
         stage('Unit Test') {
             steps {
-                echo "${params.SERVICE_NAME} 유닛 테스트를 시작합니다..."
+                echo "=== [Step 1] ${params.SERVICE_NAME} 유닛 테스트 ==="
                 dir("${params.SERVICE_NAME}") {
                     sh "chmod +x ../gradlew"
-                    sh 'echo "=== JDK Directory Structure ===" && ls -la /var/jenkins_home/tools/hudson.model.JDK/JDK21_corretto/'
-                    sh 'java -version'  
-                    sh '../gradlew -v'  
-                    sh "../gradlew :${params.SERVICE_NAME}:test --no-daemon --stacktrace"
+                    sh 'java -version'
+                    // 테스트 실행
+                    sh "../gradlew :${params.SERVICE_NAME}:test --no-daemon"
                 }
             }
             post {
                 always {
+                    // 테스트 결과 리포트
                     junit allowEmptyResults: true, testResults: "${params.SERVICE_NAME}/build/test-results/test/*.xml"
                 }
             }
@@ -32,59 +32,94 @@ pipeline {
 
         stage('Source Build') {
             steps {
-                echo "${params.SERVICE_NAME} 소스 빌드를 시작합니다..."
+                echo "=== [Step 2] ${params.SERVICE_NAME} 소스 빌드 (JAR 생성) ==="
                 dir("${params.SERVICE_NAME}") {
-                    // 테스트는 위에서 했으니 테스트는 건너뜀
                     sh "../gradlew :${params.SERVICE_NAME}:bootJar --no-daemon -x test"
                 }
-            }
-        }
-
-        stage('Docker Image Build') {
-            steps {
-                dir("${params.SERVICE_NAME}") {
-                    echo "이미지 빌드를 시작합니다..."
-                    sh "docker build -t jiaa-${params.SERVICE_NAME}:${env.BUILD_NUMBER} ." 
-                    sh "docker tag jiaa-${params.SERVICE_NAME}:${env.BUILD_NUMBER} jiaa-${params.SERVICE_NAME}:latest"
-                }
-            }
-        }
-
-        stage('Vulnerability Scan') {
-            steps {
-                echo "${params.SERVICE_NAME} 이미지의 취약점을 정밀 수색합니다..."
                 
-                // HIGH, CRITICAL 등급의 취약점이 발견되면 빌드를 멈추게 설정할 수 있음
-                // 젠킨스 서버에 trivy가 설치되어 있어야 함
-                sh """
-                    docker run --rm \
-                    -v /var/run/docker.sock:/var/run/docker.sock \
-                    -v trivy-db-cache:/root/.cache \
-                    aquasec/trivy:latest image \
-                    --exit-code 1 \
-                    --severity HIGH,CRITICAL \
-                    jiaa-${params.SERVICE_NAME}:${env.BUILD_NUMBER}
-                """
+                // 빌드된 JAR 파일을 보관함(stash)에 저장!
+                // Kaniko 파드는 완전히 다른 컴퓨터라서 이걸 안 해주면 파일이 없습니다.
+                stash name: 'build-artifacts', includes: "${params.SERVICE_NAME}/build/libs/*.jar"
             }
         }
 
-        stage('ECR Push') {
-            environment {
-                AWS_ACCESS_KEY_ID     = credentials('aws-access-key')
-                AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
+        stage('Vulnerability Scan (FS)') {
+            agent {
+                kubernetes {
+                    yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: trivy
+    image: aquasec/trivy:latest
+    command: ["cat"]
+    tty: true
+'''
+                }
             }
             steps {
-                script {
-                    echo "AWS CLI 컨테이너를 이용해 인증 토큰을 가져옵니다... "
-                    
-                    def getPassCmd = "docker run --rm -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} amazon/aws-cli ecr get-login-password --region ap-northeast-2"
-                    def ecrPass = sh(script: getPassCmd, returnStdout: true).trim()
-                    
-                    sh "echo ${ecrPass} | docker login --username AWS --password-stdin 541673202749.dkr.ecr.ap-northeast-2.amazonaws.com"
+                container('trivy') {
+                    echo "=== [Step 3] 파일 시스템 취약점 스캔 ==="
+                    // Trivy는 소스코드만 보면 되니까 unstash 필요 없음 (Git Checkout은 자동)
+                    sh """
+                        trivy fs --exit-code 1 --severity HIGH,CRITICAL \
+                        --skip-dirs 'build' --skip-dirs '.gradle' \
+                        ${params.SERVICE_NAME}/
+                    """
                 }
-                sh "docker tag jiaa-${params.SERVICE_NAME}:${env.BUILD_NUMBER} 541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:${env.BUILD_NUMBER}"
-                sh "docker push 541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:${env.BUILD_NUMBER}"
-                echo "ECR 푸시 완료!"
+            }
+        }
+
+        stage('Build & Push with Kaniko') {
+            agent {
+                kubernetes {
+                    yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command: ["/busybox/sh", "-c", "cat"]
+    tty: true
+    volumeMounts:
+    - name: kaniko-secret
+      mountPath: /kaniko/.docker
+  volumes:
+  - name: kaniko-secret
+    secret:
+      secretName: ecr-credentials
+      items:
+        - key: .dockerconfigjson
+          path: config.json
+'''
+                }
+            }
+            environment {
+                // 본인의 ECR 주소 확인 필수
+                ECR_REGISTRY = '541673202749.dkr.ecr.ap-northeast-2.amazonaws.com'
+                ECR_REPOSITORY = "jiaa/${params.SERVICE_NAME}"
+            }
+            steps {
+                container('kaniko') {
+                    echo "=== [Step 4] Kaniko 이미지 빌드 및 배포 ==="
+                    
+                    // JAR 파일을 여기서 찾음(unstash)!
+                    unstash 'build-artifacts'
+                    
+                    // 파일 잘 왔는지 확인 사살 (디버깅용)
+                    sh "ls -al ${params.SERVICE_NAME}/build/libs/"
+
+                    sh """
+                        /kaniko/executor \
+                        --context=dir://\${WORKSPACE} \
+                        --dockerfile=\${WORKSPACE}/${params.SERVICE_NAME}/Dockerfile \
+                        --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:${env.BUILD_NUMBER} \
+                        --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:latest \
+                        --force
+                    """
+                }
             }
         }
     }
