@@ -18,8 +18,6 @@ subprojects {
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(21)
-
-            vendor.set(JvmVendorSpec.AMAZON)
         }
     }
 
