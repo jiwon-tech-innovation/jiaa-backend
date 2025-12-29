@@ -25,7 +25,7 @@ pipeline {
             }
             post {
                 always {
-                    junit "${params.SERVICE_NAME}/build/test-results/test/*.xml"
+                    junit allowEmptyResults: true, testResults: "${params.SERVICE_NAME}/build/test-results/test/*.xml"
                 }
             }
         }
