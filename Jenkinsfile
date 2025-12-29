@@ -79,7 +79,7 @@ spec:
         stage('Build & Push with Kaniko') {
             agent {
                 kubernetes {
-                    yaml '''
+                    yaml """
 apiVersion: v1
 kind: Pod
 spec:
@@ -90,11 +90,41 @@ spec:
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:debug
-    command: ["/busybox/sh", "-c", "mkdir -p /bin && ln -sf /busybox/sh /bin/sh && ln -sf /busybox/cat /bin/cat && ln -sf /busybox/sleep /bin/sleep && ln -sf /busybox/ls /bin/ls && cat"]
+    command:
+    - /busybox/sh
+    - -c
+    - |
+      mkdir -p /bin
+      ln -sf /busybox/sh /bin/sh
+      ln -sf /busybox/cat /bin/cat
+      ln -sf /busybox/ls /bin/ls
+      ln -sf /busybox/cp /bin/cp
+      ln -sf /busybox/mkdir /bin/mkdir
+      ln -sf /busybox/rm /bin/rm
+      ln -sf /busybox/mv /bin/mv
+      ln -sf /busybox/sleep /bin/sleep
+      ln -sf /busybox/touch /bin/touch
+      ln -sf /busybox/echo /bin/echo
+      ln -sf /busybox/chmod /bin/chmod
+      ln -sf /busybox/pwd /bin/pwd
+      ln -sf /busybox/head /bin/head
+      ln -sf /busybox/tail /bin/tail
+      ln -sf /busybox/ps /bin/ps
+      ln -sf /busybox/kill /bin/kill
+      ln -sf /busybox/sed /bin/sed
+      ln -sf /busybox/grep /bin/grep
+      ln -sf /busybox/find /bin/find
+      ln -sf /busybox/wc /bin/wc
+      ln -sf /busybox/tr /bin/tr
+      ln -sf /busybox/cut /bin/cut
+      ln -sf /busybox/date /bin/date
+      ln -sf /busybox/mktemp /bin/mktemp
+      ln -sf /busybox/base64 /bin/base64
+      cat
     tty: true
     env:
     - name: PATH
-      value: "/busybox:/kaniko:/usr/local/bin:/usr/bin:/bin"
+      value: "/busybox:/kaniko:/bin:/usr/bin"
     resources:
       requests:
         memory: "1Gi"
@@ -112,11 +142,10 @@ spec:
       items:
         - key: .dockerconfigjson
           path: config.json
-'''
+"""
                 }
             }
             environment {
-                // 본인의 ECR 주소 확인 필수
                 ECR_REGISTRY = '541673202749.dkr.ecr.ap-northeast-2.amazonaws.com'
                 ECR_REPOSITORY = "jiaa/${params.SERVICE_NAME}"
             }
@@ -124,12 +153,13 @@ spec:
                 container('kaniko') {
                     echo "=== [Step 4] Kaniko 이미지 빌드 및 배포 ==="
                     
-                    // 아까 맡겨둔 JAR 파일을 여기서 찾음(unstash)!
+                    // JAR 파일 unstash
                     unstash 'build-artifacts'
                     
-                    // 파일 잘 왔는지 확인 사살 (디버깅용)
+                    // 파일 확인
                     sh "ls -al ${params.SERVICE_NAME}/build/libs/"
-
+                    
+                    // Kaniko 실행
                     sh """
                         /kaniko/executor \
                         --context=dir://\${WORKSPACE} \
