@@ -1,0 +1,40 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+*.iml
+.vscode
+
+# Build outputs (JAR만 필요)
+**/build
+!build/libs/*.jar
+
+# Gradle
+.gradle
+gradlew
+gradlew.bat
+gradle/
+
+# Source code (JAR만 필요하므로)
+src/
+!build/libs/
+
+# Test
+**/test
+
+# Logs
+*.log
+
+# Docker
+Dockerfile*
+docker-compose*
+
+# K8s
+k8s/
+
+# Misc
+*.md
+LICENSE
+Untitled

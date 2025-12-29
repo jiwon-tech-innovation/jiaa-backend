@@ -6,6 +6,6 @@ echo "Swagger UI: http://localhost:8080/swagger-ui.html"
 echo ""
 echo "Press Ctrl+C to stop"
 
-kubectl port-forward svc/gateway-service 8080:8080 -n jiwon-tech
+kubectl port-forward svc/gateway-service 8080:8080 -n jiaa-backend
 
 

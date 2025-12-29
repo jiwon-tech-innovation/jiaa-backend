@@ -27,22 +27,22 @@ kubectl apply -k k8s/local/
 # Discovery Service 대기
 echo ""
 echo "⏳ Waiting for Discovery Service to be ready..."
-kubectl wait --for=condition=ready pod -l app=discovery-service -n jiwon-tech --timeout=180s
+kubectl wait --for=condition=ready pod -l app=discovery-service -n jiaa-backend --timeout=180s
 
 # 모든 서비스 대기
 echo ""
 echo "⏳ Waiting for all services to be ready..."
-kubectl wait --for=condition=ready pod --all -n jiwon-tech --timeout=300s
+kubectl wait --for=condition=ready pod --all -n jiaa-backend --timeout=300s
 
 echo ""
 echo "✅ Deployment complete!"
 echo ""
 echo "📋 Pod status:"
-kubectl get pods -n jiwon-tech
+kubectl get pods -n jiaa-backend
 
 echo ""
 echo "🌐 Service status:"
-kubectl get svc -n jiwon-tech
+kubectl get svc -n jiaa-backend
 
 # Gateway Service 포트포워딩 (기존 포트포워딩이 있으면 종료 후 재시작)
 echo ""
@@ -58,11 +58,11 @@ fi
 
 # Gateway Service가 준비될 때까지 대기
 echo "   Gateway Service 준비 대기 중..."
-kubectl wait --for=condition=ready pod -l app=gateway-service -n jiwon-tech --timeout=60s || true
+kubectl wait --for=condition=ready pod -l app=gateway-service -n jiaa-backend --timeout=60s || true
 
 # 포트포워딩 백그라운드 실행
 echo "   Gateway Service 포트포워딩 시작 (localhost:8080)..."
-kubectl port-forward svc/gateway-service 8080:8080 -n jiwon-tech > /dev/null 2>&1 &
+kubectl port-forward svc/gateway-service 8080:8080 -n jiaa-backend > /dev/null 2>&1 &
 GATEWAY_PF_PID=$!
 sleep 2
 
