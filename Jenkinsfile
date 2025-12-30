@@ -2,7 +2,6 @@ pipeline {
     agent any
     
     tools {
-        // Jenkins 설정에 있는 이름과 정확히 일치해야 합니다.
         jdk 'JDK21_corretto'
     }
     
@@ -81,12 +80,37 @@ spec:
   - key: "jiaa.io/system-node"
     operator: "Exists"
     effect: "NoSchedule"
-  containers:
-  - name: kaniko
+  initContainers:
+  - name: kaniko-init
     image: gcr.io/kaniko-project/executor:debug
-    # 👇 [핵심 변경] 복잡한 스크립트 제거! 그냥 켜놓기만 합니다. (무한 대기)
-    command: ["/busybox/sh", "-c", "cat"]
-    tty: true
+    command: ["/busybox/sh", "-c"]
+    args:
+    - "cp /kaniko/executor /kaniko-bin/executor && chmod +x /kaniko-bin/executor && echo 'Kaniko executor copied successfully'"
+    volumeMounts:
+    - name: kaniko-bin
+      mountPath: /kaniko-bin
+  containers:
+  - name: jnlp
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+    volumeMounts:
+    - name: workspace
+      mountPath: /workspace
+  - name: kaniko
+    image: busybox:latest
+    command: ["/bin/sh", "-c"]
+    args:
+    - |
+      echo "DEBUG: Busybox shell started successfully!"
+      echo "Waiting for ready signal at /workspace/.ready..."
+      while [ ! -f /workspace/.ready ]; do sleep 1; done
+      echo "Signal received! Listing workspace contents..."
+      ls -la /workspace/
+      ls -la /workspace/${params.SERVICE_NAME}/
+      echo "Starting Kaniko executor from /kaniko-bin/executor..."
+      /kaniko-bin/executor --context=/workspace --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:${env.BUILD_NUMBER} --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:latest
     resources:
       requests:
         memory: "1Gi"
@@ -97,6 +121,10 @@ spec:
     volumeMounts:
     - name: kaniko-secret
       mountPath: /kaniko/.docker
+    - name: workspace
+      mountPath: /workspace
+    - name: kaniko-bin
+      mountPath: /kaniko-bin
   volumes:
   - name: kaniko-secret
     secret:
@@ -104,36 +132,56 @@ spec:
       items:
         - key: .dockerconfigjson
           path: config.json
+  - name: workspace
+    emptyDir: {}
+  - name: kaniko-bin
+    emptyDir: {}
 """
                 }
             }
             environment {
-                // 👇 본인의 ECR 주소가 맞는지 다시 한번 확인하세요!
                 ECR_REGISTRY = '541673202749.dkr.ecr.ap-northeast-2.amazonaws.com'
                 ECR_REPOSITORY = "jiaa/${params.SERVICE_NAME}"
             }
             steps {
-                container('kaniko') {
-                    echo "=== [Step 4] Kaniko 이미지 빌드 및 배포 ==="
-                    
-                    // 1. 빌드한 JAR 파일 가져오기
-                    unstash 'build-artifacts'
-                    
-                    // 2. 파일 잘 왔나 확인 (디버깅용)
-                    sh "ls -al ${params.SERVICE_NAME}/build/libs/"
-                    
-                    // 3. Kaniko 실행 (젠킨스가 직접 명령을 내립니다)
-                    // context와 dockerfile 경로에 env.WORKSPACE를 사용하여 절대경로를 줍니다.
-                    sh """
-                        /kaniko/executor \
-                        --context=dir://${env.WORKSPACE} \
-                        --dockerfile=${env.WORKSPACE}/${params.SERVICE_NAME}/Dockerfile \
-                        --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:${env.BUILD_NUMBER} \
-                        --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:latest \
-                        --force
-                    """
+                echo "=== [Step 4] Kaniko 이미지 빌드 & 배포 ==="
+                
+                // JAR 파일 unstash (jnlp 컨테이너에서 실행됨)
+                unstash 'build-artifacts'
+                
+                // 파일을 Kaniko 공유 볼륨에 복사
+                sh "cp -r . /workspace/"
+                sh "ls -al /workspace/${params.SERVICE_NAME}/build/libs/"
+                
+                // 준비 완료 신호
+                sh "touch /workspace/.ready"
+                echo "Kaniko 실행 신호 보냄. (Busybox Wrapper 방식)"
+
+                // Kaniko 완료 모니터링
+                script {
+                    def timeout = 600 // 10분
+                    def elapsed = 0
+                    while (elapsed < timeout) {
+                        sleep 10
+                        elapsed += 10
+                        echo "Kaniko 빌드 진행 중... (${elapsed}s)"
+                        try {
+                            def logs = containerLog('kaniko')
+                            if (logs.contains('Pushing image') || logs.contains('pushed')) {
+                                echo "Kaniko 빌드 완료!"
+                                break
+                            }
+                            if (logs.contains('error pushing image') || logs.contains('FATAL')) {
+                                echo "================ KANIKO LOGS ================"
+                                echo logs
+                                echo "============================================="
+                                error "Kaniko 빌드 실패"
+                            }
+                        } catch (e) {
+                            echo "로그 확인 중: ${e.message}"
+                        }
+                    }
                 }
             }
-        }
     }
 }
