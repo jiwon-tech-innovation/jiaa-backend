@@ -80,7 +80,16 @@ spec:
   - key: "jiaa.io/system-node"
     operator: "Exists"
     effect: "NoSchedule"
-  serviceAccountName: jenkins
+  initContainers:
+  - name: copy-kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command:
+    - /busybox/cp
+    - /kaniko/executor
+    - /kaniko-bin/executor
+    volumeMounts:
+    - name: kaniko-bin
+      mountPath: /kaniko-bin
   containers:
   - name: jnlp
     resources:
@@ -90,9 +99,11 @@ spec:
     volumeMounts:
     - name: workspace
       mountPath: /workspace
-  - name: kaniko
-    image: gcr.io/kaniko-project/executor:debug
-    command: ["/busybox/cat"]
+    - name: kaniko-bin
+      mountPath: /kaniko-bin
+  - name: build
+    image: alpine:latest
+    command: ["cat"]
     tty: true
     resources:
       requests:
@@ -106,6 +117,8 @@ spec:
       mountPath: /kaniko/.docker
     - name: workspace
       mountPath: /workspace
+    - name: kaniko-bin
+      mountPath: /kaniko-bin
   volumes:
   - name: kaniko-secret
     secret:
@@ -114,6 +127,8 @@ spec:
         - key: .dockerconfigjson
           path: config.json
   - name: workspace
+    emptyDir: {}
+  - name: kaniko-bin
     emptyDir: {}
 """
                 }
@@ -125,26 +140,25 @@ spec:
             steps {
                 echo "=== [Step 4] Kaniko 이미지 빌드 & 배포 ==="
                 
-                // JAR 파일 unstash (jnlp 컨테이너에서 실행됨)
                 unstash 'build-artifacts'
-                
-                // 파일을 Kaniko 공유 볼륨에 복사
                 sh "cp -r . /workspace/"
                 sh "ls -al /workspace/${params.SERVICE_NAME}/build/libs/"
                 
-                // Kaniko 컨테이너 내에서 직접 실행
-                container('kaniko') {
+                container('build') {
                     sh """
-                        echo "=== Kaniko Build Starting ==="
-                        echo "Context: /workspace"
-                        echo "Dockerfile: /workspace/${params.SERVICE_NAME}/Dockerfile"
+                        echo "=== Checking Kaniko executor ==="
+                        ls -la /kaniko-bin/
+                        chmod +x /kaniko-bin/executor
+                        
+                        echo "=== Checking workspace ==="
                         ls -la /workspace/
                         ls -la /workspace/${params.SERVICE_NAME}/
                         
-                        /kaniko/executor \\
-                            --context=/workspace \\
-                            --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile \\
-                            --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:${env.BUILD_NUMBER} \\
+                        echo "=== Starting Kaniko Build ==="
+                        /kaniko-bin/executor \
+                            --context=/workspace \
+                            --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile \
+                            --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:${env.BUILD_NUMBER} \
                             --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
                         
                         echo "=== Kaniko Build Complete ==="
