@@ -34,7 +34,7 @@ pipeline {
                 dir("${params.SERVICE_NAME}") {
                     sh "../gradlew :${params.SERVICE_NAME}:bootJar --no-daemon -x test"
                 }
-                stash name: 'build-artifacts', includes: "${params.SERVICE_NAME}/build/libs/*.jar"
+                stash name: 'build-artifacts', includes: "${params.SERVICE_NAME}/build/libs/*.jar, ${params.SERVICE_NAME}/Dockerfile"
             }
         }
 
@@ -150,15 +150,23 @@ spec:
                         ls -la /kaniko-bin/
                         chmod +x /kaniko-bin/executor
                         
+                        echo "=== Checking Docker credentials ==="
+                        ls -la /kaniko/.docker/ || echo "Docker config dir not found!"
+                        cat /kaniko/.docker/config.json || echo "config.json not found!"
+                        
+                        echo "=== Setting DOCKER_CONFIG ==="
+                        export DOCKER_CONFIG=/kaniko/.docker
+                        echo "DOCKER_CONFIG=\$DOCKER_CONFIG"
+                        
                         echo "=== Checking workspace ==="
                         ls -la /workspace/
                         ls -la /workspace/${params.SERVICE_NAME}/
                         
                         echo "=== Starting Kaniko Build ==="
-                        /kaniko-bin/executor \
-                            --context=/workspace \
-                            --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile \
-                            --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:${env.BUILD_NUMBER} \
+                        /kaniko-bin/executor \\
+                            --context=/workspace \\
+                            --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile \\
+                            --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:${env.BUILD_NUMBER} \\
                             --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
                         
                         echo "=== Kaniko Build Complete ==="
