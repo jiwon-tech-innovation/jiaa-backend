@@ -137,12 +137,18 @@ spec:
                 sh "ls -al /workspace/${params.SERVICE_NAME}/build/libs/"
                 
                 // Kaniko 실행 스크립트 생성 (변수 주입)
-                // 주의: safe echo 사용
+                // 주의: safe echo 사용 및 atomic move로 race condition 방지
                 sh """
-                    echo "#!/busybox/sh" > /workspace/kaniko_build.sh
-                    echo "echo 'Kaniko build started...'" >> /workspace/kaniko_build.sh
-                    echo "/kaniko/executor --context=dir:///workspace --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:${env.BUILD_NUMBER} --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:latest --force" >> /workspace/kaniko_build.sh
+                    echo "#!/busybox/sh" > /workspace/kaniko_build.sh.tmp
+                    echo "echo 'Kaniko build started...'" >> /workspace/kaniko_build.sh.tmp
+                    echo "/kaniko/executor --context=dir:///workspace --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:${env.BUILD_NUMBER} --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:latest --force" >> /workspace/kaniko_build.sh.tmp
+                    
+                    # 스크립트 작성 완료 후 이동 (Atomic Operation)
+                    mv /workspace/kaniko_build.sh.tmp /workspace/kaniko_build.sh
                     chmod +x /workspace/kaniko_build.sh
+                    
+                    # 디버깅용 확인
+                    cat /workspace/kaniko_build.sh
                 """
                 echo "Kaniko 빌드 스크립트 생성 완료. 실행 대기중..."
 
