@@ -72,7 +72,7 @@ spec:
         stage('Build & Push with Kaniko') {
             agent {
                 kubernetes {
-                    yaml '''
+                    yaml """
 apiVersion: v1
 kind: Pod
 spec:
@@ -94,10 +94,10 @@ spec:
     command: ["/busybox/sh", "-c"]
     args:
     - |
-      echo "Kaniko container waiting for build script..."
-      while [ ! -f /workspace/kaniko_build.sh ]; do sleep 1; done
-      echo "Build script detected. Executing..."
-      /busybox/sh /workspace/kaniko_build.sh
+      echo "Kaniko container waiting for signal..."
+      while [ ! -f /workspace/.ready ]; do sleep 1; done
+      echo "Signal received. Starting Kaniko build..."
+      /kaniko/executor --context=dir:///workspace --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:${env.BUILD_NUMBER} --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:latest --force
     resources:
       requests:
         memory: "1Gi"
@@ -119,7 +119,7 @@ spec:
           path: config.json
   - name: workspace
     emptyDir: {}
-'''
+"""
                 }
             }
             environment {
@@ -136,21 +136,9 @@ spec:
                 sh "cp -r . /workspace/"
                 sh "ls -al /workspace/${params.SERVICE_NAME}/build/libs/"
                 
-                // Kaniko 실행 스크립트 생성 (변수 주입)
-                // 주의: safe echo 사용 및 atomic move로 race condition 방지
-                sh """
-                    echo "#!/busybox/sh" > /workspace/kaniko_build.sh.tmp
-                    echo "echo 'Kaniko build started...'" >> /workspace/kaniko_build.sh.tmp
-                    echo "/kaniko/executor --context=dir:///workspace --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:${env.BUILD_NUMBER} --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:latest --force" >> /workspace/kaniko_build.sh.tmp
-                    
-                    # 스크립트 작성 완료 후 이동 (Atomic Operation)
-                    mv /workspace/kaniko_build.sh.tmp /workspace/kaniko_build.sh
-                    chmod +x /workspace/kaniko_build.sh
-                    
-                    # 디버깅용 확인
-                    cat /workspace/kaniko_build.sh
-                """
-                echo "Kaniko 빌드 스크립트 생성 완료. 실행 대기중..."
+                // 준비 완료 신호
+                sh "touch /workspace/.ready"
+                echo "Kaniko 실행 신호 보냄. (Direct YAML Args 방식)"
 
                 // Kaniko 완료 모니터링
                 script {
@@ -167,14 +155,13 @@ spec:
                                 break
                             }
                             if (logs.contains('error') || logs.contains('Error') || logs.contains('FAILED')) {
-                                // 에러 발생 시 로그 출력 후 종료
                                 echo "================ KANIKO LOGS ================"
                                 echo logs
                                 echo "============================================="
                                 error "Kaniko 빌드 실패"
                             }
                         } catch (e) {
-                            echo "로그 확인 중 에러 (무시): ${e.message}"
+                            echo "로그 확인 중: ${e.message}"
                         }
                     }
                 }
