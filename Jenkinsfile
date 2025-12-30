@@ -93,7 +93,7 @@ spec:
     image: gcr.io/kaniko-project/executor:debug
     command: ["/busybox/sh", "-c"]
     args:
-    - "echo 'Kaniko container waiting for signal...'; while [ ! -f /workspace/.ready ]; do sleep 1; done; echo 'Signal received. Starting Kaniko build...'; /kaniko/executor --context=dir:///workspace --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:${env.BUILD_NUMBER} --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:latest --force"
+    - "echo 'Kaniko container waiting for signal...'; while [ ! -f /workspace/.ready ]; do sleep 1; done; echo 'Signal received. Starting Kaniko build...'; /kaniko/executor --context=/workspace --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:${env.BUILD_NUMBER} --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:latest"
     resources:
       requests:
         memory: "1Gi"
