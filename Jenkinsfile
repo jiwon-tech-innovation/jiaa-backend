@@ -100,17 +100,7 @@ spec:
       mountPath: /workspace
   - name: kaniko
     image: busybox:latest
-    command: ["/bin/sh", "-c"]
-    args:
-    - |
-      echo "DEBUG: Busybox shell started successfully!"
-      echo "Waiting for ready signal at /workspace/.ready..."
-      while [ ! -f /workspace/.ready ]; do sleep 1; done
-      echo "Signal received! Listing workspace contents..."
-      ls -la /workspace/
-      ls -la /workspace/${params.SERVICE_NAME}/
-      echo "Starting Kaniko executor from /kaniko-bin/executor..."
-      /kaniko-bin/executor --context=/workspace --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:${env.BUILD_NUMBER} --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:latest
+    command: ["/bin/sh", "-c", "echo DEBUG_START; echo 'Waiting...'; while [ ! -f /workspace/.ready ]; do sleep 1; done; echo 'Ready!'; ls -la /workspace/; /kaniko-bin/executor --context=/workspace --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:${env.BUILD_NUMBER} --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:latest"]
     resources:
       requests:
         memory: "1Gi"
