@@ -167,7 +167,8 @@ spec:
                             --context=/workspace \\
                             --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile \\
                             --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:${env.BUILD_NUMBER} \\
-                            --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
+                            --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:latest \\
+                            --ignore-path=/var/spool/mail
                         
                         echo "=== Kaniko Build Complete ==="
                     """
