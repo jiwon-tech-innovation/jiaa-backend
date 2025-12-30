@@ -80,15 +80,7 @@ spec:
   - key: "jiaa.io/system-node"
     operator: "Exists"
     effect: "NoSchedule"
-  initContainers:
-  - name: kaniko-init
-    image: gcr.io/kaniko-project/executor:debug
-    command: ["/busybox/sh", "-c"]
-    args:
-    - "cp /kaniko/executor /kaniko-bin/executor && chmod +x /kaniko-bin/executor && echo 'Kaniko executor copied successfully'"
-    volumeMounts:
-    - name: kaniko-bin
-      mountPath: /kaniko-bin
+  serviceAccountName: jenkins
   containers:
   - name: jnlp
     resources:
@@ -99,8 +91,9 @@ spec:
     - name: workspace
       mountPath: /workspace
   - name: kaniko
-    image: busybox:latest
-    command: ["/bin/sh", "-c", "echo DEBUG_START; echo 'Waiting...'; while [ ! -f /workspace/.ready ]; do sleep 1; done; echo 'Ready!'; ls -la /workspace/; /kaniko-bin/executor --context=/workspace --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:${env.BUILD_NUMBER} --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:latest"]
+    image: gcr.io/kaniko-project/executor:debug
+    command: ["/busybox/cat"]
+    tty: true
     resources:
       requests:
         memory: "1Gi"
@@ -113,8 +106,6 @@ spec:
       mountPath: /kaniko/.docker
     - name: workspace
       mountPath: /workspace
-    - name: kaniko-bin
-      mountPath: /kaniko-bin
   volumes:
   - name: kaniko-secret
     secret:
@@ -123,8 +114,6 @@ spec:
         - key: .dockerconfigjson
           path: config.json
   - name: workspace
-    emptyDir: {}
-  - name: kaniko-bin
     emptyDir: {}
 """
                 }
@@ -143,34 +132,23 @@ spec:
                 sh "cp -r . /workspace/"
                 sh "ls -al /workspace/${params.SERVICE_NAME}/build/libs/"
                 
-                // 준비 완료 신호
-                sh "touch /workspace/.ready"
-                echo "Kaniko 실행 신호 보냄. (Busybox Wrapper 방식)"
-
-                // Kaniko 완료 모니터링
-                script {
-                    def timeout = 600 // 10분
-                    def elapsed = 0
-                    while (elapsed < timeout) {
-                        sleep 10
-                        elapsed += 10
-                        echo "Kaniko 빌드 진행 중... (${elapsed}s)"
-                        try {
-                            def logs = containerLog('kaniko')
-                            if (logs.contains('Pushing image') || logs.contains('pushed')) {
-                                echo "Kaniko 빌드 완료!"
-                                break
-                            }
-                            if (logs.contains('error pushing image') || logs.contains('FATAL')) {
-                                echo "================ KANIKO LOGS ================"
-                                echo logs
-                                echo "============================================="
-                                error "Kaniko 빌드 실패"
-                            }
-                        } catch (e) {
-                            echo "로그 확인 중: ${e.message}"
-                        }
-                    }
+                // Kaniko 컨테이너 내에서 직접 실행
+                container('kaniko') {
+                    sh """
+                        echo "=== Kaniko Build Starting ==="
+                        echo "Context: /workspace"
+                        echo "Dockerfile: /workspace/${params.SERVICE_NAME}/Dockerfile"
+                        ls -la /workspace/
+                        ls -la /workspace/${params.SERVICE_NAME}/
+                        
+                        /kaniko/executor \\
+                            --context=/workspace \\
+                            --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile \\
+                            --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:${env.BUILD_NUMBER} \\
+                            --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
+                        
+                        echo "=== Kaniko Build Complete ==="
+                    """
                 }
             }
         }
