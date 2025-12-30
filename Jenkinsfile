@@ -91,10 +91,20 @@ spec:
       mountPath: /workspace
   - name: kaniko
     image: gcr.io/kaniko-project/executor:debug
+    tty: true
+    stdin: true
     command:
     - /busybox/sh
+    args:
     - -c
-    - "echo 'DEBUG: Shell is working!'; echo 'Waiting for ready signal...'; while [ ! -f /workspace/.ready ]; do sleep 1; done; echo 'Signal received!'; ls -la /workspace/; /kaniko/executor --context=/workspace --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:${env.BUILD_NUMBER} --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:latest"
+    - |
+      echo "DEBUG: Kaniko shell started"
+      echo "Waiting for ready signal..."
+      while [ ! -f /workspace/.ready ]; do sleep 1; done
+      echo "Signal received! Listing workspace..."
+      ls -la /workspace/
+      echo "Starting Kaniko executor..."
+      exec /kaniko/executor --context=/workspace --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:${env.BUILD_NUMBER} --destination=541673202749.dkr.ecr.ap-northeast-2.amazonaws.com/jiaa/${params.SERVICE_NAME}:latest
     resources:
       requests:
         memory: "1Gi"
