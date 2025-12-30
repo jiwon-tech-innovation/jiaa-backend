@@ -107,13 +107,10 @@ spec:
       . /workspace/.build-config
       echo "SERVICE_NAME=$SERVICE_NAME"
       echo "ECR_REGISTRY=$ECR_REGISTRY"
+      echo "ECR_REPOSITORY=$ECR_REPOSITORY"
+      echo "BUILD_NUMBER=$BUILD_NUMBER"
       echo "Starting Kaniko build..."
-      /kaniko/executor \
-        --context=dir:///workspace \
-        --dockerfile=/workspace/$SERVICE_NAME/Dockerfile \
-        --destination=$ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_NUMBER \
-        --destination=$ECR_REGISTRY/$ECR_REPOSITORY:latest \
-        --force
+      /kaniko/executor --context=dir:///workspace --dockerfile=/workspace/$SERVICE_NAME/Dockerfile --destination=$ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_NUMBER --destination=$ECR_REGISTRY/$ECR_REPOSITORY:latest --force
     resources:
       requests:
         memory: "1Gi"
