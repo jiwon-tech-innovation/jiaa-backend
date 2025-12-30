@@ -17,12 +17,16 @@ public class SignUpService {
     private static final String ERROR_SIGNUP_FAILED = "회원가입에 실패했습니다";
 
     private final UserRepository userRepository;
+    private final io.github.jiwontechinnovation.user.repository.AvatarRepository avatarRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationService emailVerificationService;
 
-    public SignUpService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+    public SignUpService(UserRepository userRepository,
+            io.github.jiwontechinnovation.user.repository.AvatarRepository avatarRepository,
+            PasswordEncoder passwordEncoder,
             EmailVerificationService emailVerificationService) {
         this.userRepository = userRepository;
+        this.avatarRepository = avatarRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailVerificationService = emailVerificationService;
     }
@@ -53,6 +57,14 @@ public class SignUpService {
 
         String encodedPassword = passwordEncoder.encode(request.password());
         User user = new User(request.username(), request.email(), encodedPassword, request.name());
+
+        io.github.jiwontechinnovation.user.entity.Avatar defaultAvatar = avatarRepository.findById("default")
+                .orElse(null); // Default to null if not found, or could throw exception
+
+        if (defaultAvatar != null) {
+            user.setAvatar(defaultAvatar);
+        }
+
         User savedUser = userRepository.save(user);
         logger.info("회원가입 성공 - username: {}, email: {}", savedUser.getUsername(), savedUser.getEmail());
         return new SignUpResponse(savedUser.getUsername(), savedUser.getEmail());

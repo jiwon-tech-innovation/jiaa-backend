@@ -12,9 +12,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final io.github.jiwontechinnovation.user.repository.AvatarRepository avatarRepository;
+    private final io.github.jiwontechinnovation.user.repository.PersonalityRepository personalityRepository;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository,
+            io.github.jiwontechinnovation.user.repository.AvatarRepository avatarRepository,
+            io.github.jiwontechinnovation.user.repository.PersonalityRepository personalityRepository) {
         this.userRepository = userRepository;
+        this.avatarRepository = avatarRepository;
+        this.personalityRepository = personalityRepository;
     }
 
     @Transactional(readOnly = true)
@@ -28,10 +34,29 @@ public class UserService {
     public UserResponse updateAvatar(String identifier, UpdateAvatarRequest request) {
         User user = userRepository.findByUsernameOrEmail(identifier)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + identifier));
-        
-        user.setAvatarId(request.avatarId());
+
+        io.github.jiwontechinnovation.user.entity.Avatar avatar = avatarRepository.findById(request.avatarId())
+                .orElseThrow(() -> new IllegalArgumentException("아바타를 찾을 수 없습니다: " + request.avatarId()));
+
+        user.setAvatar(avatar);
         User savedUser = userRepository.save(user);
-        
+
+        return UserResponse.from(savedUser);
+    }
+
+    @Transactional
+    public UserResponse updatePersonality(String identifier,
+            io.github.jiwontechinnovation.user.dto.UpdatePersonalityRequest request) {
+        User user = userRepository.findByUsernameOrEmail(identifier)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + identifier));
+
+        io.github.jiwontechinnovation.user.entity.Personality personality = personalityRepository
+                .findById(request.personalityId())
+                .orElseThrow(() -> new IllegalArgumentException("성격을 찾을 수 없습니다: " + request.personalityId()));
+
+        user.setPersonality(personality);
+        User savedUser = userRepository.save(user);
+
         return UserResponse.from(savedUser);
     }
 
@@ -39,12 +64,20 @@ public class UserService {
     public UserResponse updateProfile(String identifier, UpdateProfileRequest request) {
         User user = userRepository.findByUsernameOrEmail(identifier)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + identifier));
-        
+
         user.setName(request.name());
         User savedUser = userRepository.save(user);
-        
+
         return UserResponse.from(savedUser);
     }
+
+    @Transactional(readOnly = true)
+    public java.util.List<io.github.jiwontechinnovation.user.entity.Avatar> getAllAvatars() {
+        return avatarRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<io.github.jiwontechinnovation.user.entity.Personality> getAllPersonalities() {
+        return personalityRepository.findAll();
+    }
 }
-
-

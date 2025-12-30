@@ -24,14 +24,13 @@ public class UserServiceClient {
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
             // LoadBalanced RestTemplate을 사용하면 서비스 이름으로 직접 호출 가능
-            String url = "http://user-service/api/v1/users/me";
-            
+            String url = "http://user-service/users/me";
+
             ResponseEntity<UserResponse> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
                     entity,
-                    UserResponse.class
-            );
+                    UserResponse.class);
 
             if (response.getBody() != null) {
                 return response.getBody().id();
@@ -47,4 +46,3 @@ public class UserServiceClient {
     public record UserResponse(UUID id, String username, String email, String name, String avatarId) {
     }
 }
-

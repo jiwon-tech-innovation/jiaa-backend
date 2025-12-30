@@ -9,7 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/auth")
 @Tag(name = "비밀번호", description = "비밀번호 찾기/재설정 API")
 public class PasswordController {
     private final PasswordService passwordService;

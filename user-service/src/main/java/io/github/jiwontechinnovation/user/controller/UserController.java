@@ -13,7 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/users")
 @Tag(name = "User", description = "사용자 관리 API")
 @SecurityRequirement(name = "bearerAuth")
 public class UserController {
@@ -38,6 +38,14 @@ public class UserController {
         return ApiResponse.success("아바타 변경 성공", userService.updateAvatar(identifier, request));
     }
 
+    @PatchMapping("/me/personality")
+    @Operation(summary = "성격 변경", description = "현재 사용자의 성격을 변경합니다")
+    public ApiResponse<UserResponse> updatePersonality(
+            @AuthenticationPrincipal String identifier,
+            @Valid @RequestBody io.github.jiwontechinnovation.user.dto.UpdatePersonalityRequest request) {
+        return ApiResponse.success("성격 변경 성공", userService.updatePersonality(identifier, request));
+    }
+
     @PatchMapping("/me/profile")
     @Operation(summary = "프로필 수정", description = "현재 사용자의 프로필 정보를 수정합니다")
     public ApiResponse<UserResponse> updateProfile(
@@ -45,6 +53,16 @@ public class UserController {
             @Valid @RequestBody UpdateProfileRequest request) {
         return ApiResponse.success("프로필 수정 성공", userService.updateProfile(identifier, request));
     }
+
+    @GetMapping("/avatars")
+    @Operation(summary = "사용 가능한 아바타 목록 조회", description = "모든 사용 가능한 아바타 목록을 조회합니다")
+    public ApiResponse<java.util.List<io.github.jiwontechinnovation.user.entity.Avatar>> getAllAvatars() {
+        return ApiResponse.success("아바타 목록 조회 성공", userService.getAllAvatars());
+    }
+
+    @GetMapping("/personalities")
+    @Operation(summary = "사용 가능한 성격 목록 조회", description = "모든 사용 가능한 성격 목록을 조회합니다")
+    public ApiResponse<java.util.List<io.github.jiwontechinnovation.user.entity.Personality>> getAllPersonalities() {
+        return ApiResponse.success("성격 목록 조회 성공", userService.getAllPersonalities());
+    }
 }
-
-

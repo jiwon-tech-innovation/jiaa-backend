@@ -18,6 +18,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
+@RequestMapping("/analysis")
 @Tag(name = "Analysis", description = "분석 통계 API")
 @SecurityRequirement(name = "bearerAuth")
 public class AnalysisController {
@@ -67,7 +68,7 @@ public class AnalysisController {
                                             "value", k.getValue()))
                                     .collect(Collectors.toList())
                             : List.of();
-                    
+
                     return Map.<String, Object>of(
                             "id", stat.getId() != null ? stat.getId() : "null",
                             "userId", stat.getUserId() != null ? stat.getUserId().toString() : "null",
@@ -106,9 +107,14 @@ public class AnalysisController {
             System.err.println("Failed to get authentication: " + e.getMessage());
         }
 
-        DashboardStatsResponse response = analysisService.getDashboardStats(userId, year);
-
-        return ApiResponse.success("통계 데이터 조회 성공", response);
+        try {
+            DashboardStatsResponse response = analysisService.getDashboardStats(userId, year);
+            return ApiResponse.success("통계 데이터 조회 성공", response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Error in getDashboardStats: " + e.getMessage());
+            throw e;
+        }
     }
 
     @PostMapping("/stats/keywords")
@@ -120,7 +126,7 @@ public class AnalysisController {
             String userIdStr = (String) request.get("userId");
             @SuppressWarnings("unchecked")
             List<String> keywords = (List<String>) request.get("keywords");
-            
+
             UUID userId = null;
             if (userIdStr != null && !userIdStr.isEmpty()) {
                 try {
@@ -129,11 +135,11 @@ public class AnalysisController {
                     System.err.println("Invalid userId format: " + userIdStr);
                 }
             }
-            
+
             if (keywords != null && !keywords.isEmpty()) {
                 analysisService.saveKeywords(userId, keywords);
             }
-            
+
             return ApiResponse.success("키워드 저장 성공", null);
         } catch (Exception e) {
             System.err.println("키워드 저장 오류: " + e.getMessage());

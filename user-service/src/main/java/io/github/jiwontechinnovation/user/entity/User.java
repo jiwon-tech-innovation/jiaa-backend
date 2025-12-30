@@ -37,8 +37,13 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name = "avatar_id")
-    private String avatarId = "default";
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "avatar_id")
+    private Avatar avatar;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "personality_id")
+    private Personality personality;
 
     protected User() {
     }
@@ -93,12 +98,20 @@ public class User {
         this.password = password;
     }
 
-    public String getAvatarId() {
-        return avatarId;
+    public Avatar getAvatar() {
+        return avatar;
     }
 
-    public void setAvatarId(String avatarId) {
-        this.avatarId = avatarId;
+    public void setAvatar(Avatar avatar) {
+        this.avatar = avatar;
+    }
+
+    public Personality getPersonality() {
+        return personality;
+    }
+
+    public void setPersonality(Personality personality) {
+        this.personality = personality;
     }
 
     public void setName(String name) {

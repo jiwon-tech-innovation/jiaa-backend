@@ -11,58 +11,68 @@ public class GatewayConfig {
         @Bean
         public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
                 return builder.routes()
-                                // Auth Service
+                                // Auth Service - /api/auth/** -> /auth/**
                                 .route("auth-service", r -> r
-                                                .path("/api/v1/auth/**")
+                                                .path("/api/auth/**")
+                                                .filters(f -> f.rewritePath("/api/auth/(?<segment>.*)",
+                                                                "/auth/${segment}"))
                                                 .uri("lb://auth-service"))
                                 .route("auth-service-swagger", r -> r
                                                 .path("/auth-service/v3/api-docs/**")
                                                 .filters(f -> f.stripPrefix(1))
                                                 .uri("lb://auth-service"))
-                                // User Service
+                                // User Service - /api/users/** -> /users/**
                                 .route("user-service", r -> r
-                                                .path("/api/v1/users/**")
+                                                .path("/api/users/**")
+                                                .filters(f -> f.rewritePath("/api/users/(?<segment>.*)",
+                                                                "/users/${segment}"))
                                                 .uri("lb://user-service"))
                                 .route("user-service-swagger", r -> r
                                                 .path("/user-service/v3/api-docs/**")
                                                 .filters(f -> f.stripPrefix(1))
                                                 .uri("lb://user-service"))
-                                // Goal Service
+                                // Goal Service - /api/goal/** -> /goal/**
                                 .route("goal-service", r -> r
                                                 .path("/api/goal/**")
-                                                .filters(f -> f.stripPrefix(2))
+                                                .filters(f -> f.rewritePath("/api/goal/(?<segment>.*)",
+                                                                "/goal/${segment}"))
                                                 .uri("lb://goal-service"))
                                 .route("goal-service-swagger", r -> r
                                                 .path("/goal-service/v3/api-docs/**")
                                                 .filters(f -> f.stripPrefix(1))
                                                 .uri("lb://goal-service"))
-                                // Analysis Service
+                                // Analysis Service - /api/analysis/** -> /analysis/**
                                 .route("analysis-service", r -> r
                                                 .path("/api/analysis/**")
-                                                .filters(f -> f.stripPrefix(2))
+                                                .filters(f -> f.rewritePath("/api/analysis/(?<segment>.*)",
+                                                                "/analysis/${segment}"))
                                                 .uri("lb://analysis-service"))
                                 .route("analysis-service-swagger", r -> r
                                                 .path("/analysis-service/v3/api-docs/**")
                                                 .filters(f -> f.stripPrefix(1))
                                                 .uri("lb://analysis-service"))
-                                // AI Chat Service (FastAPI) - WebSocket (우선순위 높음, 더 구체적인 경로 먼저)
+                                // AI Chat Service (FastAPI) - WebSocket
                                 .route("ai-chat-service-websocket", r -> r
-                                                .path("/api/v1/chat/ws")
+                                                .path("/api/chat/ws")
+                                                .filters(f -> f.rewritePath("/api/chat/ws", "/chat/ws"))
                                                 .uri("lb://ai-chat-service"))
-                                // AI Chat Service (FastAPI) - HTTP 요청 (WebSocket 제외)
+                                // AI Chat Service (FastAPI) - HTTP
                                 .route("ai-chat-service", r -> r
-                                                .path("/api/v1/chat/**", "/api/v1/roadmaps/**",
-                                                                "/api/v1/personalities/**", "/api/v1/sessions/**",
-                                                                "/api/v1/debug/**")
+                                                .path("/api/chat/**", "/api/roadmaps/**",
+                                                                "/api/personalities/**", "/api/sessions/**",
+                                                                "/api/debug/**")
+                                                .filters(f -> f.rewritePath("/api/(?<segment>.*)", "/${segment}"))
                                                 .uri("lb://ai-chat-service"))
                                 .route("ai-chat-service-openapi", r -> r
                                                 .path("/ai-chat-service/openapi.json")
                                                 .filters(f -> f.rewritePath("/ai-chat-service/openapi.json",
                                                                 "/openapi.json"))
                                                 .uri("lb://ai-chat-service"))
-                                // AI Judge Service (FastAPI) - Direct K8s Service
+                                // AI Judge Service (FastAPI)
                                 .route("ai-judge-service", r -> r
-                                                .path("/api/v1/judge/**")
+                                                .path("/api/judge/**")
+                                                .filters(f -> f.rewritePath("/api/judge/(?<segment>.*)",
+                                                                "/judge/${segment}"))
                                                 .uri("http://jiaa-ai-judge-service-svc:8080"))
                                 .route("ai-judge-service-openapi", r -> r
                                                 .path("/ai-judge-service/openapi.json")
