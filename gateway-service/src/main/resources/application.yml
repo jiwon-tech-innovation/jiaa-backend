@@ -7,7 +7,15 @@ spring:
   cloud:
     gateway:
       routes:
-        # Auth Service
+        # Auth Service - API routes
+        - id: auth-service-api
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - RewritePath=/api/auth/(?<segment>.*),/auth/${segment}
+        
+        # Auth Service - Swagger
         - id: auth-service
           uri: http://auth-service:8080
           predicates:
@@ -15,7 +23,15 @@ spring:
           filters:
             - StripPrefix=1
         
-        # User Service
+        # User Service - API routes
+        - id: user-service-api
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - RewritePath=/api/users/(?<segment>.*),/users/${segment}
+        
+        # User Service - Swagger
         - id: user-service
           uri: http://user-service:8080
           predicates:
@@ -23,7 +39,15 @@ spring:
           filters:
             - StripPrefix=1
         
-        # Goal Service
+        # Goal Service - API routes
+        - id: goal-service-api
+          uri: lb://goal-service
+          predicates:
+            - Path=/api/goal/**
+          filters:
+            - RewritePath=/api/goal/(?<segment>.*),/goal/${segment}
+        
+        # Goal Service - Swagger
         - id: goal-service
           uri: http://goal-service:8080
           predicates:
@@ -31,7 +55,15 @@ spring:
           filters:
             - StripPrefix=1
         
-        # Analysis Service
+        # Analysis Service - API routes
+        - id: analysis-service-api
+          uri: lb://analysis-service
+          predicates:
+            - Path=/api/analysis/**
+          filters:
+            - RewritePath=/api/analysis/(?<segment>.*),/analysis/${segment}
+        
+        # Analysis Service - Swagger
         - id: analysis-service
           uri: http://analysis-service:8080
           predicates:
@@ -45,14 +77,18 @@ spring:
         - id: ai-chat-service-websocket
           uri: http://jiaa-ai-chat-service-svc:8080
           predicates:
-            - Path=/api/v1/chat/ws
+            - Path=/api/chat/ws
+          filters:
+            - RewritePath=/api/chat/ws,/chat/ws
           # WebSocket 업그레이드는 Gateway가 자동으로 처리
         
         # AI Chat Service (FastAPI) - HTTP 요청 (WebSocket 제외)
         - id: ai-chat-service
           uri: lb://ai-chat-service
           predicates:
-            - Path=/api/v1/chat/**,/api/v1/roadmaps/**,/api/v1/personalities/**,/api/v1/sessions/**,/api/v1/debug/**
+            - Path=/api/chat/**,/api/roadmaps/**,/api/personalities/**,/api/sessions/**,/api/debug/**
+          filters:
+            - RewritePath=/api/(?<segment>.*),/${segment}
           # WebSocket 경로 제외를 위해 필터 추가는 불필요 (라우팅 순서로 해결)
         
         # AI Chat Service OpenAPI (for Swagger) - Eureka Load Balancer
@@ -67,7 +103,9 @@ spring:
         - id: ai-judge-service
           uri: lb://ai-judge-service
           predicates:
-            - Path=/api/v1/judge/**
+            - Path=/api/judge/**
+          filters:
+            - RewritePath=/api/judge/(?<segment>.*),/judge/${segment}
         
         # AI Judge Service OpenAPI (for Swagger) - Eureka Load Balancer
         - id: ai-judge-service-openapi

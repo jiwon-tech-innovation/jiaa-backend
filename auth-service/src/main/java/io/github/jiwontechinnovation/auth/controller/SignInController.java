@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Arrays;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/auth")
 @Tag(name = "로그인", description = "로그인/로그아웃/토큰 갱신 API")
 public class SignInController {
     private final SignInService signInService;

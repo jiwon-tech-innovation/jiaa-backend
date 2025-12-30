@@ -38,24 +38,24 @@ public class CorsConfig {
             // Connection 헤더도 확인 (일부 클라이언트는 Upgrade만 보낼 수 있음)
             String upgradeHeader = request.getHeaders().getFirst("Upgrade");
             String connectionHeader = request.getHeaders().getFirst("Connection");
-            if ("websocket".equalsIgnoreCase(upgradeHeader) || 
-                (connectionHeader != null && connectionHeader.toLowerCase().contains("upgrade"))) {
+            if ("websocket".equalsIgnoreCase(upgradeHeader) ||
+                    (connectionHeader != null && connectionHeader.toLowerCase().contains("upgrade"))) {
                 return chain.filter(exchange);
             }
 
             // Origin 헤더 가져오기
             String origin = request.getHeaders().getOrigin();
-            
+
             // 허용된 Origin 목록 (개발 환경)
             // Electron 앱은 null origin 또는 file:// 프로토콜을 사용할 수 있음
             String[] allowedOrigins = {
-                "http://localhost:5173",
-                "http://localhost:3000",
-                "http://127.0.0.1:5173",
-                "http://127.0.0.1:3000",
-                "null"  // Electron 앱의 경우 null origin 허용
+                    "http://localhost:5173",
+                    "http://localhost:3000",
+                    "http://127.0.0.1:5173",
+                    "http://127.0.0.1:3000",
+                    "null" // Electron 앱의 경우 null origin 허용
             };
-            
+
             // Origin이 허용된 목록에 있는지 확인
             boolean isAllowed = false;
             if (origin == null || origin.isEmpty()) {
@@ -86,7 +86,8 @@ public class CorsConfig {
                 return chain.filter(exchange);
             }
             headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-            headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "Origin, Content-Type, Accept, Authorization, X-Requested-With");
+            headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
+                    "Origin, Content-Type, Accept, Authorization, X-Requested-With");
             headers.set(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "Authorization, Content-Type");
             headers.set(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600");
 

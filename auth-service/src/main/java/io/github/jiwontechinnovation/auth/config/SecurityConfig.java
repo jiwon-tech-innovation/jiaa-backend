@@ -16,11 +16,11 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain authSecurityFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/api/v1/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
+                .securityMatcher("/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
                         "/actuator/**", "/error")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/**", "/error").permitAll()
                         .anyRequest().authenticated());

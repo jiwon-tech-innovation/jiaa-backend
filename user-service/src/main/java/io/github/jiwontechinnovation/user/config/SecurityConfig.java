@@ -23,7 +23,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain userSecurityFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/api/v1/users/**", "/api/v1/user/**", "/v3/api-docs/**", "/swagger-ui/**",
+                .securityMatcher("/users/**", "/user/**", "/v3/api-docs/**", "/swagger-ui/**",
                         "/swagger-ui.html", "/actuator/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

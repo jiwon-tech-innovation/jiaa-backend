@@ -9,10 +9,11 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/auth")
 @Tag(name = "회원가입", description = "회원가입/이메일 인증 API")
 public class SignUpController {
     private final SignUpService signUpService;
+
     public SignUpController(SignUpService signUpService) {
         this.signUpService = signUpService;
     }

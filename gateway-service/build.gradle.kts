@@ -14,13 +14,6 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-loadbalancer")
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.0")
 
-    // MacOS DNS resolver 네이티브 라이브러리 (로컬 개발 환경 전용)
-    if (System.getProperty("os.name").lowercase().contains("mac")) {
-        val arch = System.getProperty("os.arch")
-        val classifier = if (arch == "aarch64") "osx-aarch_64" else "osx-x86_64"
-        runtimeOnly("io.netty:netty-resolver-dns-native-macos:4.2.9.Final:$classifier")
-    }
-
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
