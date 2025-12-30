@@ -97,7 +97,7 @@ spec:
     - name: workspace
       mountPath: /workspace
   - name: kaniko
-    image: gcr.io/kaniko-project/executor:v1.23.0
+    image: gcr.io/kaniko-project/executor:debug
     command: ["/busybox/sh", "-c"]
     args:
     - |
