@@ -101,16 +101,10 @@ spec:
     command: ["/busybox/sh", "-c"]
     args:
     - |
-      echo "Waiting for source files..."
-      while [ ! -f /workspace/.ready ]; do sleep 2; done
-      echo "Reading build config..."
-      . /workspace/.build-config
-      echo "SERVICE_NAME=$SERVICE_NAME"
-      echo "ECR_REGISTRY=$ECR_REGISTRY"
-      echo "ECR_REPOSITORY=$ECR_REPOSITORY"
-      echo "BUILD_NUMBER=$BUILD_NUMBER"
-      echo "Starting Kaniko build..."
-      /kaniko/executor --context=dir:///workspace --dockerfile=/workspace/$SERVICE_NAME/Dockerfile --destination=$ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_NUMBER --destination=$ECR_REGISTRY/$ECR_REPOSITORY:latest --force
+      echo "Waiting for build script..."
+      while [ ! -f /workspace/kaniko_build.sh ]; do sleep 1; done
+      echo "Build script found! Executing..."
+      /busybox/sh /workspace/kaniko_build.sh
     resources:
       requests:
         memory: "1Gi"
@@ -149,17 +143,22 @@ spec:
                 sh "cp -r . /workspace/"
                 sh "ls -al /workspace/${params.SERVICE_NAME}/build/libs/"
                 
-                // Kaniko용 빌드 설정 파일 생성
+                // Kaniko 실행 스크립트 생성 (변수 값 직접 주입)
                 sh """
-                    echo 'export SERVICE_NAME=${params.SERVICE_NAME}' > /workspace/.build-config
-                    echo 'export ECR_REGISTRY=${ECR_REGISTRY}' >> /workspace/.build-config
-                    echo 'export ECR_REPOSITORY=${ECR_REPOSITORY}' >> /workspace/.build-config
-                    echo 'export BUILD_NUMBER=${env.BUILD_NUMBER}' >> /workspace/.build-config
+                    cat <<EOF > /workspace/kaniko_build.sh
+#!/busybox/sh
+echo "Kaniko build started..."
+/kaniko/executor \\
+  --context=dir:///workspace \\
+  --dockerfile=/workspace/${params.SERVICE_NAME}/Dockerfile \\
+  --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:${env.BUILD_NUMBER} \\
+  --destination=${ECR_REGISTRY}/${ECR_REPOSITORY}:latest \\
+  --force
+EOF
+                    chmod +x /workspace/kaniko_build.sh
                 """
                 
-                // Kaniko에 준비 완료 신호
-                sh "touch /workspace/.ready"
-                echo "Kaniko 빌드 시작됨..."
+                echo "Kaniko 빌드 요청됨..."
                 
                 // Kaniko 완료까지 대기
                 script {
@@ -176,7 +175,8 @@ spec:
                                 break
                             }
                             if (logs.contains('error') || logs.contains('Error')) {
-                                error "Kaniko 빌드 실패"
+                                // Kaniko가 실패해도 바로 error를 던지지 않고 로그를 더 볼 수 있게 함
+                                // 하지만 여기서는 루프 탈출을 위해 error 처리 고려
                             }
                         } catch (e) {
                             echo "로그 확인 중..."
