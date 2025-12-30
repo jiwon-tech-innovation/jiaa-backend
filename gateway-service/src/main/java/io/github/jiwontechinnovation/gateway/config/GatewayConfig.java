@@ -60,15 +60,15 @@ public class GatewayConfig {
                                                 .filters(f -> f.rewritePath("/ai-chat-service/openapi.json",
                                                                 "/openapi.json"))
                                                 .uri("lb://ai-chat-service"))
-                                // AI Judge Service (FastAPI) - Eureka Load Balancer
+                                // AI Judge Service (FastAPI) - Direct K8s Service
                                 .route("ai-judge-service", r -> r
                                                 .path("/api/v1/judge/**")
-                                                .uri("lb://ai-judge-service"))
+                                                .uri("http://jiaa-ai-judge-service-svc:8080"))
                                 .route("ai-judge-service-openapi", r -> r
                                                 .path("/ai-judge-service/openapi.json")
                                                 .filters(f -> f.rewritePath("/ai-judge-service/openapi.json",
                                                                 "/openapi.json"))
-                                                .uri("lb://ai-judge-service"))
+                                                .uri("http://jiaa-ai-judge-service-svc:8080"))
                                 .build();
         }
 }
