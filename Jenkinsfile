@@ -21,13 +21,15 @@ pipeline {
 
     stages {
         // [Step 0] 변경 감지 탐정 단계
+        // 🕵️‍♂️ [Step 0] 변경 감지 탐정 단계 (수정판)
         stage('Detect Changes') {
             steps {
                 script {
-                    // 1. 빌드 원인 확인 (사람이 눌렀나? 웹훅이 찔렀나?)
+                    def detectedService = params.SERVICE_NAME // 1. 일단 기본값(user-service)으로 시작
+                    
+                    // 2. 빌드 원인 확인
                     def causes = currentBuild.getBuildCauses()
                     def isManual = false
-                    
                     for (cause in causes) {
                         if (cause.shortDescription.contains("Started by user")) {
                             isManual = true
@@ -35,39 +37,38 @@ pipeline {
                     }
                     
                     if (isManual) {
-                        echo "👤 사용자 수동 실행 감지! 선택된 서비스(${params.SERVICE_NAME})로 진행합니다."
-                        env.TARGET_SERVICE = params.SERVICE_NAME
+                        echo "👤 사용자 수동 실행! 선택값(${detectedService})을 사용합니다."
                     } else {
-                        echo "🤖 웹훅(Webhook) 트리거 감지! 변경된 파일을 분석합니다..."
-                        
+                        echo "🤖 웹훅 트리거 감지! 변경 분석 시작..."
                         try {
-                            // Git Diff로 변경된 파일 목록 가져오기 (이전 커밋 vs 현재 커밋)
-                            def changedFiles = sh(script: "git diff --name-only HEAD~1 HEAD", returnStdout: true).trim()
-                            echo "📝 변경된 파일 목록:\n${changedFiles}"
+                            // 👇 [핵심 수정] --color=never 옵션 추가 (색상 코드 제거)
+                            def changedFiles = sh(script: "git diff --name-only --color=never HEAD~1 HEAD", returnStdout: true).trim()
+                            echo "📝 변경된 파일 목록(Raw):\n${changedFiles}"
                             
-                            // 변경된 폴더에 따라 서비스 매칭 (우선순위 로직)
+                            // 3. 변경된 파일에 따라 서비스 교체
                             if (changedFiles.contains("user-service/")) {
-                                env.TARGET_SERVICE = "user-service"
+                                detectedService = "user-service"
                             } else if (changedFiles.contains("auth-service/")) {
-                                env.TARGET_SERVICE = "auth-service"
+                                detectedService = "auth-service"
                             } else if (changedFiles.contains("analysis-service/")) {
-                                env.TARGET_SERVICE = "analysis-service"
+                                detectedService = "analysis-service"
                             } else if (changedFiles.contains("goal-service/")) {
-                                env.TARGET_SERVICE = "goal-service"
+                                detectedService = "goal-service"
                             } else if (changedFiles.contains("gateway-service/")) {
-                                env.TARGET_SERVICE = "gateway-service"
+                                detectedService = "gateway-service"
                             } else {
-                                echo "⚠️ 특정 서비스 폴더의 변경사항을 찾지 못했습니다. (공통 모듈 수정 등). 기본값(${params.SERVICE_NAME})으로 진행합니다."
+                                echo "⚠️ 서비스 폴더 변경 없음. 기본값 유지."
                             }
                         } catch (Exception e) {
-                            echo "⚠️ 변경 내역 조회 실패 (첫 빌드일 수 있음). 기본값으로 진행합니다."
+                            echo "⚠️ Git Diff 실패 (첫 커밋 등). 기본값 유지."
                         }
                     }
                     
-                    // 최종 결정된 서비스 이름 확정
-                    env.ECR_REPOSITORY = "jiaa/${env.TARGET_SERVICE}"
-                    echo "🎯 최종 빌드 대상 확정: [ ${env.TARGET_SERVICE} ]"
-                    echo "📦 타겟 ECR 리포지토리: [ ${env.ECR_REPOSITORY} ]"
+                    // 4. 최종 결과를 환경 변수에 확정 저장
+                    env.TARGET_SERVICE = detectedService
+                    env.ECR_REPOSITORY = "jiaa/${detectedService}"
+                    
+                    echo "🎯 [최종 확정] 빌드 대상: ${env.TARGET_SERVICE}"
                 }
             }
         }
