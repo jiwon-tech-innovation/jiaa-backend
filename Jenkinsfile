@@ -14,9 +14,7 @@ pipeline {
     
     environment {
         ECR_REGISTRY = '541673202749.dkr.ecr.ap-northeast-2.amazonaws.com'
-        
-        // 초기값은 파라미터에서 가져오지만, 아래 'Detect Changes' 단계에서 덮어씌워질 수 있음
-        TARGET_SERVICE = "${params.SERVICE_NAME}"
+        // TARGET_SERVICE는 'Detect Changes' 단계에서 동적으로 설정됨
     }
 
     stages {
