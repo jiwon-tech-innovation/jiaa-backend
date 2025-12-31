@@ -68,6 +68,7 @@ pipeline {
                     }
                     
                     // 4. 최종 결과를 환경 변수에 확정 저장
+                    echo "DEBUG: detectedService value before save = ${detectedService}"
                     env.TARGET_SERVICE = detectedService
                     env.ECR_REPOSITORY = "jiaa/${detectedService}"
                     
