@@ -196,13 +196,14 @@ spec:
                     // 2. 디버깅: 파일 확인
                     sh "ls -al ${env.TARGET_SERVICE}/build/libs/"
                     
-                    // 3. Kaniko 실행 (Busybox 환경에서 실행됨)
+                    // 3. Kaniko 실행 (Alpine 환경에서 실행됨)
                     sh """
-                        /kaniko/executor \
-                        --context=dir://${env.WORKSPACE} \
-                        --dockerfile=${env.WORKSPACE}/${env.TARGET_SERVICE}/Dockerfile \
-                        --destination=${ECR_REGISTRY}/${env.ECR_REPOSITORY}:${env.BUILD_NUMBER} \
-                        --destination=${ECR_REGISTRY}/${env.ECR_REPOSITORY}:latest \
+                        /kaniko/executor \\
+                        --context=dir://${env.WORKSPACE} \\
+                        --dockerfile=${env.WORKSPACE}/${env.TARGET_SERVICE}/Dockerfile \\
+                        --destination=${ECR_REGISTRY}/${env.ECR_REPOSITORY}:${env.BUILD_NUMBER} \\
+                        --destination=${ECR_REGISTRY}/${env.ECR_REPOSITORY}:latest \\
+                        --ignore-path=/var/spool/mail \\
                         --force
                     """
                 }
