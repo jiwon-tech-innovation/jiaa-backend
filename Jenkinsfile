@@ -150,7 +150,7 @@ spec:
   - name: kaniko-init
     image: gcr.io/kaniko-project/executor:debug
     command: ["/busybox/sh", "-c"]
-    args: ["cp -a /kaniko/* /kaniko-shared/ && cp -a /etc/ssl /ssl-shared/"]
+    args: ["cp -a /kaniko/* /kaniko-shared/ && mkdir -p /ssl-shared/certs && cp -a /etc/ssl/certs/* /ssl-shared/certs/"]
     volumeMounts:
     - name: kaniko-bin
       mountPath: /kaniko-shared
