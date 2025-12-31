@@ -1,3 +1,5 @@
+import org.gradle.jvm.toolchain.JvmVendorSpec
+
 plugins {
     java
     id("org.springframework.boot") version "4.0.1" apply false
@@ -40,9 +42,4 @@ subprojects {
     tasks.withType<Test> {
         useJUnitPlatform()
     }
-}
-
-// Configure test task for root project
-tasks.test {
-    useJUnitPlatform()
 }
