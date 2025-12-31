@@ -2,7 +2,6 @@ pipeline {
     agent any
     
     tools {
-        // Jenkins Global Tool Configuration에 설정된 JDK 이름
         jdk 'JDK21_corretto'
     }
     
@@ -14,95 +13,103 @@ pipeline {
     
     environment {
         ECR_REGISTRY = '541673202749.dkr.ecr.ap-northeast-2.amazonaws.com'
-        // TARGET_SERVICE는 'Detect Changes' 단계에서 동적으로 설정됨
     }
 
     stages {
-        // [Step 0] 변경 감지 탐정 단계
-        // 🕵️‍♂️ [Step 0] 변경 감지 탐정 단계 (수정판)
+        // 🕵️‍♂️ [Step 0] 변경 감지 - 여러 서비스 동시 감지
         stage('Detect Changes') {
             steps {
                 script {
-                    def detectedService = params.SERVICE_NAME // 1. 일단 기본값(user-service)으로 시작
+                    def allServices = ['user-service', 'auth-service', 'analysis-service', 'goal-service', 'gateway-service']
+                    def changedServices = []
                     
-                    // 2. 빌드 원인 확인
+                    // 빌드 원인 확인
                     def causes = currentBuild.getBuildCauses()
-                    def isManual = false
-                    for (cause in causes) {
-                        if (cause.shortDescription.contains("Started by user")) {
-                            isManual = true
-                        }
-                    }
+                    def isManual = causes.any { it.shortDescription.contains("Started by user") }
                     
                     if (isManual) {
-                        echo "👤 사용자 수동 실행! 선택값(${detectedService})을 사용합니다."
+                        echo "👤 사용자 수동 실행! 선택값(${params.SERVICE_NAME})을 사용합니다."
+                        changedServices = [params.SERVICE_NAME]
                     } else {
                         echo "🤖 웹훅 트리거 감지! 변경 분석 시작..."
                         try {
-                            // 👇 [핵심 수정] --color=never 옵션 추가 (색상 코드 제거)
                             def changedFiles = sh(script: "git diff --name-only --color=never HEAD~1 HEAD", returnStdout: true).trim()
-                            echo "📝 변경된 파일 목록(Raw):\n${changedFiles}"
+                            echo "📝 변경된 파일 목록:\n${changedFiles}"
                             
-                            // 3. 변경된 파일에 따라 서비스 교체
-                            echo "DEBUG: Checking for user-service/: ${changedFiles.contains('user-service/')}"
-                            echo "DEBUG: Checking for analysis-service/: ${changedFiles.contains('analysis-service/')}"
+                            // 각 서비스별로 변경 여부 확인
+                            for (service in allServices) {
+                                if (changedFiles.contains("${service}/")) {
+                                    changedServices.add(service)
+                                    echo "✅ ${service} 변경 감지!"
+                                }
+                            }
                             
-                            if (changedFiles.contains("user-service/")) {
-                                detectedService = "user-service"
-                            } else if (changedFiles.contains("auth-service/")) {
-                                detectedService = "auth-service"
-                            } else if (changedFiles.contains("analysis-service/")) {
-                                detectedService = "analysis-service"
-                            } else if (changedFiles.contains("goal-service/")) {
-                                detectedService = "goal-service"
-                            } else if (changedFiles.contains("gateway-service/")) {
-                                detectedService = "gateway-service"
-                            } else {
-                                echo "⚠️ 서비스 폴더 변경 없음. 기본값 유지."
+                            if (changedServices.isEmpty()) {
+                                echo "⚠️ 서비스 폴더 변경 없음. 기본값(${params.SERVICE_NAME}) 사용."
+                                changedServices = [params.SERVICE_NAME]
                             }
                         } catch (Exception e) {
-                            echo "⚠️ Git Diff 실패 (첫 커밋 등). 기본값 유지."
+                            echo "⚠️ Git Diff 실패. 기본값 사용: ${e.message}"
+                            changedServices = [params.SERVICE_NAME]
                         }
                     }
                     
-                    // 4. 최종 결과를 환경 변수에 확정 저장
-                    echo "DEBUG: detectedService value before save = ${detectedService}"
-                    env.TARGET_SERVICE = detectedService
-                    env.ECR_REPOSITORY = "jiaa/${detectedService}"
-                    
-                    echo "🎯 [최종 확정] 빌드 대상: ${env.TARGET_SERVICE}"
+                    // 결과 저장
+                    env.CHANGED_SERVICES = changedServices.join(',')
+                    echo "🎯 [최종 확정] 빌드 대상 서비스들: ${env.CHANGED_SERVICES}"
                 }
             }
         }
 
-        stage('Unit Test') {
+        // 🔄 [Step 1-4] 각 서비스별 순차 빌드
+        stage('Build Services') {
             steps {
-                echo "=== [Step 1] ${env.TARGET_SERVICE} 유닛 테스트 ==="
-                dir("${env.TARGET_SERVICE}") {
-                    sh "chmod +x ../gradlew"
-                    sh 'java -version'
-                    sh "../gradlew :${env.TARGET_SERVICE}:test --no-daemon"
+                script {
+                    def services = env.CHANGED_SERVICES.split(',')
+                    
+                    for (svc in services) {
+                        def serviceName = svc.trim()
+                        echo "========================================"
+                        echo "🚀 [${serviceName}] 빌드 시작"
+                        echo "========================================"
+                        
+                        // Step 1: Unit Test
+                        stage("Test: ${serviceName}") {
+                            echo "=== [Step 1] ${serviceName} 유닛 테스트 ==="
+                            dir(serviceName) {
+                                sh "chmod +x ../gradlew"
+                                sh "../gradlew :${serviceName}:test --no-daemon"
+                            }
+                        }
+                        
+                        // Step 2: Source Build
+                        stage("Build: ${serviceName}") {
+                            echo "=== [Step 2] ${serviceName} 소스 빌드 (JAR 생성) ==="
+                            dir(serviceName) {
+                                sh "../gradlew :${serviceName}:bootJar --no-daemon -x test"
+                            }
+                            stash name: "artifacts-${serviceName}", includes: "${serviceName}/build/libs/*.jar"
+                        }
+                        
+                        echo "✅ [${serviceName}] JAR 빌드 완료!"
+                    }
                 }
             }
             post {
                 always {
-                    junit allowEmptyResults: true, testResults: "${env.TARGET_SERVICE}/build/test-results/test/*.xml"
+                    script {
+                        def services = env.CHANGED_SERVICES.split(',')
+                        for (svc in services) {
+                            def serviceName = svc.trim()
+                            junit allowEmptyResults: true, testResults: "${serviceName}/build/test-results/test/*.xml"
+                        }
+                    }
                 }
             }
         }
 
-        stage('Source Build') {
-            steps {
-                echo "=== [Step 2] ${env.TARGET_SERVICE} 소스 빌드 (JAR 생성) ==="
-                dir("${env.TARGET_SERVICE}") {
-                    sh "../gradlew :${env.TARGET_SERVICE}:bootJar --no-daemon -x test"
-                }
-                // Kaniko 파드로 넘겨주기 위해 JAR 파일 저장
-                stash name: 'build-artifacts', includes: "${env.TARGET_SERVICE}/build/libs/*.jar"
-            }
-        }
-
-        stage('Vulnerability Scan (FS)') {
+        // 🔍 [Step 3] Trivy 취약점 스캔
+        stage('Vulnerability Scan') {
             agent {
                 kubernetes {
                     yaml '''
@@ -122,18 +129,25 @@ spec:
                 }
             }
             steps {
-                container('trivy') {
-                    echo "=== [Step 3] 파일 시스템 취약점 스캔 ==="
-                    sh """
-                        trivy fs --exit-code 1 --severity HIGH,CRITICAL \
-                        --skip-dirs 'build' --skip-dirs '.gradle' \
-                        ${env.TARGET_SERVICE}/
-                    """
+                script {
+                    def services = env.CHANGED_SERVICES.split(',')
+                    for (svc in services) {
+                        def serviceName = svc.trim()
+                        container('trivy') {
+                            echo "=== [Step 3] ${serviceName} 파일 시스템 취약점 스캔 ==="
+                            sh """
+                                trivy fs --exit-code 1 --severity HIGH,CRITICAL \
+                                --skip-dirs 'build' --skip-dirs '.gradle' \
+                                ${serviceName}/
+                            """
+                        }
+                    }
                 }
             }
         }
 
-        stage('Build & Push with Kaniko') {
+        // 🐳 [Step 4] Kaniko 이미지 빌드 & ECR Push
+        stage('Docker Build & Push') {
             agent {
                 kubernetes {
                     yaml """
@@ -145,7 +159,6 @@ spec:
     operator: "Exists"
     effect: "NoSchedule"
     
-  # [핵심] Kaniko 실행파일을 공유 볼륨으로 복사하는 Init Container
   initContainers:
   - name: kaniko-init
     image: gcr.io/kaniko-project/executor:debug
@@ -156,7 +169,6 @@ spec:
       mountPath: /kaniko-shared
 
   containers:
-  # [핵심] Alpine은 SSL 인증서가 내장되어 있어 ECR 접속 가능
   - name: kaniko
     image: alpine:latest
     command: ["cat"]
@@ -187,27 +199,48 @@ spec:
                 }
             }
             steps {
-                container('kaniko') {
-                    echo "=== [Step 4] Kaniko 이미지 빌드 및 배포 (${env.TARGET_SERVICE}) ==="
+                script {
+                    def services = env.CHANGED_SERVICES.split(',')
                     
-                    // 1. 아까 빌드한 JAR 파일 가져오기
-                    unstash 'build-artifacts'
-                    
-                    // 2. 디버깅: 파일 확인
-                    sh "ls -al ${env.TARGET_SERVICE}/build/libs/"
-                    
-                    // 3. Kaniko 실행 (Alpine 환경에서 실행됨)
-                    sh """
-                        /kaniko/executor \\
-                        --context=dir://${env.WORKSPACE} \\
-                        --dockerfile=${env.WORKSPACE}/${env.TARGET_SERVICE}/Dockerfile \\
-                        --destination=${ECR_REGISTRY}/${env.ECR_REPOSITORY}:${env.BUILD_NUMBER} \\
-                        --destination=${ECR_REGISTRY}/${env.ECR_REPOSITORY}:latest \\
-                        --ignore-path=/var/spool/mail \\
-                        --force
-                    """
+                    for (svc in services) {
+                        def serviceName = svc.trim()
+                        def ecrRepository = "jiaa/${serviceName}"
+                        
+                        container('kaniko') {
+                            echo "=== [Step 4] ${serviceName} Docker 이미지 빌드 & Push ==="
+                            
+                            // JAR 파일 가져오기
+                            unstash "artifacts-${serviceName}"
+                            
+                            // 파일 확인
+                            sh "ls -al ${serviceName}/build/libs/"
+                            
+                            // Kaniko 실행
+                            sh """
+                                /kaniko/executor \\
+                                --context=dir://${env.WORKSPACE} \\
+                                --dockerfile=${env.WORKSPACE}/${serviceName}/Dockerfile \\
+                                --destination=${ECR_REGISTRY}/${ecrRepository}:${env.BUILD_NUMBER} \\
+                                --destination=${ECR_REGISTRY}/${ecrRepository}:latest \\
+                                --ignore-path=/var/spool/mail \\
+                                --force
+                            """
+                            
+                            echo "✅ [${serviceName}] ECR Push 완료!"
+                        }
+                    }
                 }
             }
+        }
+    }
+    
+    post {
+        success {
+            echo "🎉 모든 서비스 빌드 & 배포 성공!"
+            echo "빌드된 서비스: ${env.CHANGED_SERVICES}"
+        }
+        failure {
+            echo "❌ 빌드 실패. 로그를 확인하세요."
         }
     }
 }

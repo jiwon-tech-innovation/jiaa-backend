@@ -7,4 +7,4 @@ RUN dnf update -y && dnf clean all
 
 # 3. JAR 복사 및 실행 (기존과 동일)
 COPY build/libs/*.jar app.jar
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]# CI test Wed Dec 31 11:49:00 KST 2025
