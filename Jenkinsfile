@@ -46,6 +46,9 @@ pipeline {
                             echo "📝 변경된 파일 목록(Raw):\n${changedFiles}"
                             
                             // 3. 변경된 파일에 따라 서비스 교체
+                            echo "DEBUG: Checking for user-service/: ${changedFiles.contains('user-service/')}"
+                            echo "DEBUG: Checking for analysis-service/: ${changedFiles.contains('analysis-service/')}"
+                            
                             if (changedFiles.contains("user-service/")) {
                                 detectedService = "user-service"
                             } else if (changedFiles.contains("auth-service/")) {
