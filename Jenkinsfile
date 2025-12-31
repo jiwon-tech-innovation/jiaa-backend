@@ -145,15 +145,17 @@ spec:
     operator: "Exists"
     effect: "NoSchedule"
     
-  # [핵심] Kaniko 실행파일과 인증서를 공유 볼륨으로 복사하는 Init Container
+  # [핵심] Kaniko 실행파일과 SSL 인증서를 공유 볼륨으로 복사하는 Init Container
   initContainers:
   - name: kaniko-init
     image: gcr.io/kaniko-project/executor:debug
     command: ["/busybox/sh", "-c"]
-    args: ["cp -a /kaniko/* /kaniko-shared/"]
+    args: ["cp -a /kaniko/* /kaniko-shared/ && cp -a /etc/ssl /ssl-shared/"]
     volumeMounts:
     - name: kaniko-bin
       mountPath: /kaniko-shared
+    - name: ssl-certs
+      mountPath: /ssl-shared
 
   containers:
   # [핵심] 젠킨스와 호환성 좋은 Busybox에서 Kaniko 실행
@@ -164,6 +166,8 @@ spec:
     env:
     - name: PATH
       value: "/kaniko:/bin:/usr/bin"
+    - name: SSL_CERT_DIR
+      value: "/etc/ssl/certs"
     resources:
       requests:
         memory: "1Gi"
@@ -176,9 +180,13 @@ spec:
       mountPath: /kaniko
     - name: kaniko-secret
       mountPath: /kaniko/.docker
+    - name: ssl-certs
+      mountPath: /etc/ssl
       
   volumes:
   - name: kaniko-bin
+    emptyDir: {}
+  - name: ssl-certs
     emptyDir: {}
   - name: kaniko-secret
     secret:
